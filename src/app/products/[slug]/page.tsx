@@ -18,16 +18,6 @@ const categoryLabel: Record<string, string> = {
   "engraving-only": "Engraving Service",
 };
 
-export async function generateStaticParams() {
-  try {
-    const products = await getAllProducts();
-    return products.map((p) => ({ slug: p.slug }));
-  } catch {
-    return [];
-  }
-}
-
-export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
