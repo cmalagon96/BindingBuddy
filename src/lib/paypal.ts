@@ -1,4 +1,5 @@
 let cachedToken: { token: string; expiresAt: number } | null = null;
+let inflightRefresh: Promise<string> | null = null;
 
 export function getPayPalApiBase(): string {
   return process.env.NODE_ENV === "production"
@@ -11,6 +12,21 @@ export async function getPayPalAccessToken(): Promise<string> {
     return cachedToken.token;
   }
 
+  // If a refresh is already in flight, share its promise to avoid duplicate requests
+  if (inflightRefresh) {
+    return inflightRefresh;
+  }
+
+  inflightRefresh = refreshToken();
+
+  try {
+    return await inflightRefresh;
+  } finally {
+    inflightRefresh = null;
+  }
+}
+
+async function refreshToken(): Promise<string> {
   const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 

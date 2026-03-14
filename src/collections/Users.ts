@@ -10,6 +10,22 @@ export const Users: CollectionConfig = {
   slug: "users",
   auth: true,
   hooks: {
+    // MED-15: Default new users to "editor". Only bootstrap (first user) gets "admin".
+    beforeValidate: [
+      async ({ data, operation, req }) => {
+        if (operation === "create" && data) {
+          const { totalDocs } = await req.payload.count({
+            collection: "users",
+          });
+          if (totalDocs === 0) {
+            data.role = "admin";
+          } else if (!data.role) {
+            data.role = "editor";
+          }
+        }
+        return data;
+      },
+    ],
     afterLogin: [
       async () => {
         // Clear TOTP session cookie on every login so user must re-verify
@@ -42,7 +58,7 @@ export const Users: CollectionConfig = {
       name: "role",
       type: "select",
       required: true,
-      defaultValue: "admin",
+      defaultValue: "editor",
       options: [
         { label: "Admin", value: "admin" },
         { label: "Editor", value: "editor" },

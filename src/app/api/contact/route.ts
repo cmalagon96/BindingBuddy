@@ -1,16 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
+import {
+  getRateLimitKey,
+  isRateLimited,
+  recordFailedAttempt,
+} from "@/lib/rate-limit";
 
+// MED-4: Max lengths on all fields
 const contactSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  binderType: z.string().min(1),
-  message: z.string().min(10),
+  name: z.string().min(1).max(100),
+  email: z.string().email().max(254),
+  binderType: z.string().min(1).max(100),
+  message: z.string().min(10).max(5000),
 });
+
+// MED-4: Rate limit config for contact form (unauthenticated)
+const CONTACT_RATE_NAMESPACE = "contact";
+const CONTACT_RATE_CONFIG = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxAttempts: 5, // 5 submissions per window
+};
 
 export async function POST(req: NextRequest) {
   try {
+    // MED-4: Rate limit by IP (unauthenticated endpoint)
+    const rateLimitKey = getRateLimitKey(req);
+    if (isRateLimited(rateLimitKey, CONTACT_RATE_NAMESPACE, CONTACT_RATE_CONFIG)) {
+      return NextResponse.json(
+        { error: "Too many submissions. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const data = contactSchema.parse(body);
 
@@ -40,6 +62,9 @@ export async function POST(req: NextRequest) {
       ].join("\n"),
     });
 
+    // Count successful submissions toward rate limit too
+    recordFailedAttempt(rateLimitKey, CONTACT_RATE_NAMESPACE, CONTACT_RATE_CONFIG);
+
     return NextResponse.json({ success: true });
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -48,8 +73,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const message =
-      err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // HIGH-11: Log full error, return generic message
+    console.error("[contact] Unhandled error:", err);
+    return NextResponse.json(
+      { error: "Contact form submission failed" },
+      { status: 500 }
+    );
   }
 }

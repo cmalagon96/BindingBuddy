@@ -1,4 +1,6 @@
-import { getFeaturedProducts, getAllProducts } from "@/lib/products";
+// MED-7: single getAllProducts() query — derive featured via .filter()
+// instead of two sequential DB calls (getFeaturedProducts + getAllProducts)
+import { getAllProducts } from "@/lib/products";
 import Hero from "@/components/sections/Hero";
 import FeaturedProducts from "@/components/sections/FeaturedProducts";
 import CategoryGrid from "@/components/sections/CategoryGrid";
@@ -9,8 +11,8 @@ import ProductCard from "@/components/ui/ProductCard";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const featured = await getFeaturedProducts();
   const all = await getAllProducts();
+  const featured = all.filter((p) => p.featured);
 
   return (
     <>

@@ -26,8 +26,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 400 });
+    // HIGH-11: Log full error, return generic message
+    console.error("[create-payment-intent] Unhandled error:", err);
+    return NextResponse.json(
+      { error: "Payment processing failed" },
+      { status: 400 }
+    );
   }
 }

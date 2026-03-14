@@ -3,6 +3,15 @@ import { headers } from "next/headers";
 import { getPayload } from "payload";
 import config from "@payload-config";
 import { verifyToken } from "@/lib/totp";
+import {
+  getRateLimitKey,
+  isRateLimited,
+  recordFailedAttempt,
+  clearFailedAttempts,
+} from "@/lib/rate-limit";
+
+// HIGH-3: Rate limiting shared with verify route (same namespace + per-user key)
+const RATE_LIMIT_NAMESPACE = "totp";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +27,15 @@ export async function POST(req: NextRequest) {
       id: string;
       totpEnabled?: boolean;
     };
+
+    // MED-3: Rate limit by userId (not spoofable IP)
+    const rateLimitKey = getRateLimitKey(req, typedUser.id);
+    if (isRateLimited(rateLimitKey, RATE_LIMIT_NAMESPACE)) {
+      return NextResponse.json(
+        { error: "Too many failed attempts. Try again later." },
+        { status: 429 }
+      );
+    }
 
     if (!typedUser.totpEnabled) {
       return NextResponse.json(
@@ -47,11 +65,15 @@ export async function POST(req: NextRequest) {
       | undefined;
 
     if (!secret || !verifyToken(token, secret)) {
+      recordFailedAttempt(rateLimitKey, RATE_LIMIT_NAMESPACE);
       return NextResponse.json(
         { error: "Invalid TOTP code" },
         { status: 400 }
       );
     }
+
+    // Success — clear rate limit
+    clearFailedAttempts(rateLimitKey, RATE_LIMIT_NAMESPACE);
 
     await payload.update({
       collection: "users",

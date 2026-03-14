@@ -3,6 +3,19 @@ import { cookies } from "next/headers";
 import { getPayPalApiBase, getPayPalAccessToken } from "@/lib/paypal";
 import { validateCartItems, calculateTotal } from "@/lib/checkout-validation";
 import { stores } from "@/lib/stores";
+import crypto from "crypto";
+
+// ---------------------------------------------------------------------------
+// HIGH-2: Sign the server-generated orderId for capture verification
+// ---------------------------------------------------------------------------
+function signOrderId(orderId: string): string {
+  const secret = process.env.PAYLOAD_SECRET;
+  if (!secret) throw new Error("PAYLOAD_SECRET not set");
+  return crypto
+    .createHmac("sha256", secret)
+    .update(`paypal_order:${orderId}`)
+    .digest("hex");
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,14 +55,32 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`PayPal create order failed: ${text}`);
+      // HIGH-11: Log full error, return generic message
+      console.error("[paypal/create-order] PayPal API error:", text);
+      return NextResponse.json(
+        { error: "Payment processing failed" },
+        { status: 500 }
+      );
     }
 
     const order = await res.json();
+
+    // HIGH-2: Store signed orderId in httpOnly cookie for capture verification
+    cookieStore.set("pp_order_sig", signOrderId(order.id), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 30, // 30 minutes — generous for checkout
+    });
+
     return NextResponse.json({ orderId: order.id });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 400 });
+    // HIGH-11: Log full error, return generic message
+    console.error("[paypal/create-order] Unhandled error:", err);
+    return NextResponse.json(
+      { error: "Payment processing failed" },
+      { status: 500 }
+    );
   }
 }

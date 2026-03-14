@@ -1,6 +1,24 @@
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "./payload";
 import type { Product } from "@/types/product";
+
+/** Fields selected from Payload product queries (avoid over-fetching). */
+const PRODUCT_SELECT = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  price: true,
+  image: true,
+  images: true,
+  category: true,
+  featured: true,
+  stock: true,
+  pokemon: true,
+  binderType: true,
+  variants: true,
+  badge: true,
+  inStock: true,
+} as const;
 
 function resolveImageUrl(img: unknown): string {
   if (!img) return "/images/placeholder.jpg";
@@ -30,16 +48,14 @@ function normalizeProduct(doc: Record<string, unknown>): Product {
   };
 }
 
-async function getPayloadClient() {
-  return getPayload({ config });
-}
-
 export async function getAllProducts(): Promise<Product[]> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "products",
     limit: 200,
     sort: "-createdAt",
+    depth: 1,
+    select: PRODUCT_SELECT,
   });
   return result.docs.map((doc) => normalizeProduct(doc as unknown as Record<string, unknown>));
 }
@@ -50,6 +66,8 @@ export async function getFeaturedProducts(): Promise<Product[]> {
     collection: "products",
     where: { featured: { equals: true } },
     limit: 20,
+    depth: 1,
+    select: PRODUCT_SELECT,
   });
   return result.docs.map((doc) => normalizeProduct(doc as unknown as Record<string, unknown>));
 }
@@ -62,6 +80,8 @@ export async function getProductBySlug(
     collection: "products",
     where: { slug: { equals: slug } },
     limit: 1,
+    depth: 1,
+    select: PRODUCT_SELECT,
   });
   const doc = result.docs[0];
   return doc
@@ -77,6 +97,8 @@ export async function getProductsByCategory(
     collection: "products",
     where: { category: { equals: category } },
     limit: 100,
+    depth: 1,
+    select: PRODUCT_SELECT,
   });
   return result.docs.map((doc) => normalizeProduct(doc as unknown as Record<string, unknown>));
 }

@@ -1,3 +1,6 @@
+/** Stripe minimum charge is $0.50 = 50 cents */
+const STRIPE_MINIMUM_CENTS = 50;
+
 export interface ValidatedCartItem {
   productId: string;
   name: string;
@@ -54,5 +57,11 @@ export function validateCartItems(items: unknown): ValidatedCartItem[] {
 }
 
 export function calculateTotal(items: ValidatedCartItem[]): number {
-  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  if (total < STRIPE_MINIMUM_CENTS) {
+    throw new Error(
+      `Order total ($${(total / 100).toFixed(2)}) is below the minimum charge of $0.50`
+    );
+  }
+  return total;
 }

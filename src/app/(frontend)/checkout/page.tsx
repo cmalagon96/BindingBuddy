@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Elements } from "@stripe/react-stripe-js";
@@ -42,6 +42,10 @@ function CheckoutContent() {
   const [paid, setPaid] = useState(false);
   const [manualStoreRef, setManualStoreRef] = useState<string | null>(null);
 
+  // HIGH-7: guard flag prevents a second intent from being created when
+  // manualStoreRef changes after the first intent is already in flight.
+  const intentCreating = useRef(false);
+
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
 
@@ -52,10 +56,16 @@ function CheckoutContent() {
     }
   }, [success, clearCart]);
 
-  // Create PaymentIntent when cart has items
+  // HIGH-7: Create PaymentIntent exactly once when cart has items.
+  // manualStoreRef is intentionally excluded from deps — a store selection
+  // after the intent is created must not trigger a second intent. The
+  // cookie-based storeRef is read server-side; manualStoreRef is forwarded
+  // to PayPal via the storeRef prop at confirmation time.
   useEffect(() => {
     if (items.length === 0 || success || canceled) return;
+    if (clientSecret || intentCreating.current) return;
 
+    intentCreating.current = true;
     let cancelled = false;
 
     async function createIntent() {
@@ -71,7 +81,6 @@ function CheckoutContent() {
               quantity: i.quantity,
               image: i.image,
             })),
-            ...(manualStoreRef ? { storeRef: manualStoreRef } : {}),
           }),
         });
 
@@ -87,6 +96,10 @@ function CheckoutContent() {
         if (!cancelled) {
           setIntentError("Failed to connect to payment server");
         }
+      } finally {
+        if (!cancelled) {
+          intentCreating.current = false;
+        }
       }
     }
 
@@ -94,7 +107,8 @@ function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, [items, success, canceled, manualStoreRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, success, canceled]);
 
   const handlePaymentSuccess = useCallback(() => {
     clearCart();

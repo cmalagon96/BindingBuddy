@@ -4,6 +4,7 @@ import Image from "next/image";
 import {
   getProductBySlug,
   getAllProducts,
+  getProductsByCategory,
   formatPrice,
 } from "@/lib/products";
 import AddToCartButton from "@/components/products/AddToCartButton";
@@ -21,7 +22,13 @@ const categoryLabel: Record<string, string> = {
   "design-collection": "Design Collection",
 };
 
-export const dynamic = "force-dynamic";
+// HIGH-9: ISR — revalidate every 60s, pre-render known slugs at build time
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const products = await getAllProducts();
+  return products.map((p) => ({ slug: p.slug }));
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -38,9 +45,10 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const allProducts = await getAllProducts();
-  const related = allProducts
-    .filter((p) => p.category === product.category && p.id !== product.id)
+  // HIGH-10: use targeted category query instead of getAllProducts() (limit:200)
+  const categoryProducts = await getProductsByCategory(product.category);
+  const related = categoryProducts
+    .filter((p) => p.id !== product.id)
     .slice(0, 3);
 
   return (

@@ -17,6 +17,12 @@ export const Products: CollectionConfig = {
     update: isAdmin,
     delete: isAdmin,
   },
+  indexes: [
+    { fields: ["featured"] },
+    { fields: ["category"] },
+    { fields: ["createdAt"] },
+    { fields: ["category", "featured"] },
+  ],
   fields: [
     {
       name: "name",
@@ -36,7 +42,8 @@ export const Products: CollectionConfig = {
       name: "price",
       type: "number",
       required: true,
-      admin: { description: "Price in cents (e.g. 3499 = $34.99)" },
+      min: 1,
+      admin: { description: "Price in cents (e.g. 3499 = $34.99). Minimum 1." },
     },
     {
       name: "description",

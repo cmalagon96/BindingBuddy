@@ -33,7 +33,11 @@ export const useCartStore = create<CartState>()(
             return {
               items: state.items.map((i) =>
                 i.productId === item.productId
-                  ? { ...i, quantity: i.quantity + item.quantity }
+                  ? {
+                      ...i,
+                      // MED-13: cap accumulated quantity at 99
+                      quantity: Math.min(i.quantity + item.quantity, 99),
+                    }
                   : i
               ),
             };
@@ -46,12 +50,16 @@ export const useCartStore = create<CartState>()(
           items: state.items.filter((i) => i.productId !== productId),
         })),
 
+      // MED-12: clamp to at least 1 to prevent 0 / negative quantities
       updateQty: (productId, quantity) =>
-        set((state) => ({
-          items: state.items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i
-          ),
-        })),
+        set((state) => {
+          const clamped = Math.max(1, quantity);
+          return {
+            items: state.items.map((i) =>
+              i.productId === productId ? { ...i, quantity: clamped } : i
+            ),
+          };
+        }),
 
       clearCart: () => set({ items: [] }),
     }),
