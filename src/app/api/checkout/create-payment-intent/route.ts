@@ -1,20 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getStripe } from "@/lib/stripe";
-import { validateCartItems, calculateTotal } from "@/lib/checkout-validation";
+import {
+  validateAndPriceCartItems,
+  calculateTotal,
+} from "@/lib/checkout-validation";
+import { validateStock } from "@/lib/inventory/validate-stock";
 import { stores } from "@/lib/stores";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const items = validateCartItems(body.items);
+
+    // P1: Server-side price verification — prices come from DB, not client
+    const items = await validateAndPriceCartItems(body.items);
+
+    // P8: Validate stock BEFORE creating the PaymentIntent
+    const stockResult = await validateStock(
+      items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        variantLabel: i.variant,
+      }))
+    );
+    if (!stockResult.valid) {
+      return NextResponse.json(
+        {
+          error: "Some items are out of stock",
+          unavailableItems: stockResult.unavailableItems,
+        },
+        { status: 400 }
+      );
+    }
+
     const total = calculateTotal(items);
 
     const cookieStore = await cookies();
     const cookieRef = cookieStore.get("store_ref")?.value || "organic";
-    // Body storeRef (from fallback picker) takes priority if valid
+    // P21: Validate cookie-sourced storeRef against allowlist too
     const storeRef =
-      body.storeRef && stores[body.storeRef] ? body.storeRef : cookieRef;
+      body.storeRef && stores[body.storeRef]
+        ? body.storeRef
+        : stores[cookieRef]
+          ? cookieRef
+          : "organic";
 
     const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create({
@@ -26,7 +55,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err) {
-    // HIGH-11: Log full error, return generic message
     console.error("[create-payment-intent] Unhandled error:", err);
     return NextResponse.json(
       { error: "Payment processing failed" },

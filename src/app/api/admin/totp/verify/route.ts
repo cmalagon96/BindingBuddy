@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers, cookies } from "next/headers";
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "@/lib/payload";
 import { verifyToken } from "@/lib/totp";
 import crypto from "crypto";
 import {
@@ -35,7 +34,7 @@ function createTotpCookieValue(userId: string): string {
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   try {
-    const payload = await getPayload({ config });
+    const payload = await getPayloadClient();
     const headersList = await headers();
 
     const { user } = await payload.auth({ headers: headersList });
@@ -117,7 +116,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      // Session cookie — expires when browser closes
+      maxAge: 8 * 60 * 60, // 8 hours
     });
 
     return NextResponse.json({ valid: true });

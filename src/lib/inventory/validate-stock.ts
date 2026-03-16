@@ -1,5 +1,4 @@
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "@/lib/payload";
 import type { StockItem, StockValidationResult, UnavailableItem } from "./types";
 
 interface ProductVariantDoc {
@@ -33,7 +32,7 @@ export async function validateStock(
     return { valid: true, unavailableItems: [] };
   }
 
-  const payload = await getPayload({ config });
+  const payload = await getPayloadClient();
 
   // Deduplicate product IDs for a single bulk fetch
   const productIds = [...new Set(items.map((item) => item.productId))];
@@ -61,6 +60,17 @@ export async function validateStock(
       unavailableItems.push({
         productId: item.productId,
         name: "Unknown product",
+        requested: item.quantity,
+        available: 0,
+      });
+      continue;
+    }
+
+    // P8: Check explicit inStock flag — if false, product is unavailable
+    if (product.inStock === false) {
+      unavailableItems.push({
+        productId: item.productId,
+        name: product.name,
         requested: item.quantity,
         available: 0,
       });

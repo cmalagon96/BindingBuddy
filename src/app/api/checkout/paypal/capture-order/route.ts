@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getPayPalApiBase, getPayPalAccessToken } from "@/lib/paypal";
+import { createOrder } from "@/lib/orders/create-order";
+import { sendOrderConfirmation } from "@/lib/email/send-order-confirmation";
+import { deductStock } from "@/lib/inventory/deduct-stock";
+import { validateShippingAddress } from "@/lib/shipping/validation";
 import crypto from "crypto";
 
 // ---------------------------------------------------------------------------
@@ -15,6 +19,67 @@ function signOrderId(orderId: string): string {
     .createHmac("sha256", secret)
     .update(`paypal_order:${orderId}`)
     .digest("hex");
+}
+
+/**
+ * Verify and decode the pending order data cookie set during create-order.
+ * Returns the parsed order data or null if invalid/missing.
+ */
+function decodePendingOrderCookie(
+  cookieValue: string | undefined
+): {
+  items: Array<{
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    variant?: string;
+  }>;
+  customerEmail: string;
+  shippingAddress: Record<string, unknown>;
+  storeRef: string;
+  totalCents: number;
+} | null {
+  if (!cookieValue) return null;
+
+  const secret = process.env.PAYLOAD_SECRET;
+  if (!secret) return null;
+
+  const dotIdx = cookieValue.lastIndexOf(".");
+  if (dotIdx === -1) return null;
+
+  const b64 = cookieValue.slice(0, dotIdx);
+  const sig = cookieValue.slice(dotIdx + 1);
+
+  // Verify HMAC signature
+  const expectedSig = crypto
+    .createHmac("sha256", secret)
+    .update(`pp_pending:${b64}`)
+    .digest("hex");
+
+  // Constant-time comparison to prevent timing attacks
+  if (
+    sig.length !== expectedSig.length ||
+    !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))
+  ) {
+    return null;
+  }
+
+  try {
+    const decoded = JSON.parse(Buffer.from(b64, "base64").toString("utf-8"));
+    // Basic shape validation
+    if (
+      !decoded ||
+      !Array.isArray(decoded.items) ||
+      typeof decoded.customerEmail !== "string" ||
+      typeof decoded.totalCents !== "number"
+    ) {
+      return null;
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -48,8 +113,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Clear the one-time-use cookie
+    // P2: Decode the pending order data before capture
+    const pendingCookie = cookieStore.get("pp_pending_order")?.value;
+    const pendingOrder = decodePendingOrderCookie(pendingCookie);
+    if (!pendingOrder) {
+      console.error("[paypal/capture] Missing or invalid pp_pending_order cookie");
+      return NextResponse.json(
+        { error: "Order session expired. Please restart checkout." },
+        { status: 400 }
+      );
+    }
+
+    // Clear the one-time-use cookies
     cookieStore.delete("pp_order_sig");
+    cookieStore.delete("pp_pending_order");
 
     // Capture the PayPal order
     const accessToken = await getPayPalAccessToken();
@@ -65,7 +142,6 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text();
-      // HIGH-11: Log full error, return generic message
       console.error("[paypal/capture] PayPal capture failed:", text);
       return NextResponse.json(
         { error: "Payment processing failed" },
@@ -83,12 +159,96 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // P2: Verify captured amount matches expected total
+    const capturedAmount =
+      data.purchase_units?.[0]?.payments?.captures?.[0]?.amount;
+    if (capturedAmount) {
+      const capturedCents = Math.round(parseFloat(capturedAmount.value) * 100);
+      if (capturedCents !== pendingOrder.totalCents) {
+        console.error(
+          `[paypal/capture] Amount mismatch: captured ${capturedCents} vs expected ${pendingOrder.totalCents}`
+        );
+        // Log but don't fail — money is already captured. Flag for manual review.
+      }
+    }
+
     const captureId =
       data.purchase_units?.[0]?.payments?.captures?.[0]?.id || null;
 
-    return NextResponse.json({ status: data.status, captureId });
+    // P2: Create the order record in the database
+    // Validate shipping address before creating order
+    const shippingResult = validateShippingAddress(pendingOrder.shippingAddress);
+    const shippingAddress = shippingResult.success && shippingResult.data
+      ? shippingResult.data
+      : {
+          fullName: "",
+          line1: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          country: "US",
+        };
+
+    try {
+      const order = await createOrder({
+        customerEmail: pendingOrder.customerEmail,
+        items: pendingOrder.items.map((i) => ({
+          productId: i.productId,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+          variant: i.variant,
+        })),
+        total: pendingOrder.totalCents,
+        shippingAddress,
+        paymentMethod: "paypal",
+        paymentId: orderId,
+        storeRef: pendingOrder.storeRef,
+      });
+
+      // Deduct stock
+      deductStock(
+        pendingOrder.items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          variantLabel: i.variant,
+        }))
+      ).catch((err) => {
+        console.error("[paypal/capture] Failed to deduct stock:", err);
+      });
+
+      // Send confirmation email — fire and forget
+      sendOrderConfirmation(order).catch((err) => {
+        console.error("[paypal/capture] Failed to send confirmation email:", err);
+      });
+
+      return NextResponse.json({
+        status: data.status,
+        captureId,
+        orderId: order.id,
+      });
+    } catch (orderErr) {
+      // CRITICAL: Payment was captured but order creation failed.
+      // Log everything needed for manual reconciliation.
+      console.error(
+        "[paypal/capture] CRITICAL: Payment captured but order creation failed.",
+        {
+          paypalOrderId: orderId,
+          captureId,
+          customerEmail: pendingOrder.customerEmail,
+          totalCents: pendingOrder.totalCents,
+          error: orderErr,
+        }
+      );
+      // Still return success to the user — their payment went through.
+      // The order will need manual reconciliation.
+      return NextResponse.json({
+        status: data.status,
+        captureId,
+        warning: "Order is being processed. You will receive a confirmation email shortly.",
+      });
+    }
   } catch (err) {
-    // HIGH-11: Log full error, return generic message
     console.error("[paypal/capture] Unhandled error:", err);
     return NextResponse.json(
       { error: "Payment processing failed" },

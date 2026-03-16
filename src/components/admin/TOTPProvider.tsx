@@ -14,9 +14,10 @@ export default function TOTPProvider({ children }: { children: ReactNode }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    console.log("[TOTP] user:", user ? (user as any).id : null);
-
     if (!user) {
+      // No authenticated user — Payload's own auth guard will redirect to login.
+      // Reset to "verified" so the children are rendered if auth resolves later,
+      // but do nothing else here (avoids noise before auth state is ready).
       setStatus("verified");
       return;
     }
@@ -34,7 +35,6 @@ export default function TOTPProvider({ children }: { children: ReactNode }) {
           return;
         }
         const data = await res.json();
-        console.log("[TOTP] status response:", data);
         if (data.totpEnabled && !data.totpVerified) {
           setStatus("needs-verify");
         } else {

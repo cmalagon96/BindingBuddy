@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "@/lib/payload";
 import { confirmOrder } from "@/lib/orders/create-order";
 import { sendOrderConfirmation } from "@/lib/email/send-order-confirmation";
 import { deductStock } from "@/lib/inventory/deduct-stock";
@@ -96,7 +95,7 @@ async function handlePaymentSucceeded(
   const paymentId = paymentIntent.id;
 
   try {
-    const payload = await getPayload({ config });
+    const payload = await getPayloadClient();
 
     // Find the order by paymentId
     const result = await payload.find({
@@ -168,7 +167,7 @@ async function handlePaymentFailed(
   const paymentId = paymentIntent.id;
 
   try {
-    const payload = await getPayload({ config });
+    const payload = await getPayloadClient();
 
     const result = await payload.find({
       collection: "orders",

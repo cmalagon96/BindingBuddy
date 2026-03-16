@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "@/lib/payload";
 import { generateSecret, generateQRDataURL } from "@/lib/totp";
 
 export async function POST() {
   try {
-    const payload = await getPayload({ config });
+    const payload = await getPayloadClient();
     const headersList = await headers();
 
     const { user } = await payload.auth({ headers: headersList });
@@ -34,7 +33,7 @@ export async function POST() {
       overrideAccess: true,
     });
 
-    return NextResponse.json({ qrDataURL, secret });
+    return NextResponse.json({ qrDataURL });
   } catch (error) {
     console.error("TOTP setup error:", error);
     return NextResponse.json(

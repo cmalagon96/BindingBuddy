@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "@/lib/payload";
 import { verifyToken } from "@/lib/totp";
 import {
   getRateLimitKey,
@@ -15,7 +14,7 @@ const RATE_LIMIT_NAMESPACE = "totp";
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await getPayload({ config });
+    const payload = await getPayloadClient();
     const headersList = await headers();
 
     const { user } = await payload.auth({ headers: headersList });

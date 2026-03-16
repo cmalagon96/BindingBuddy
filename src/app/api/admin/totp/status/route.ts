@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers, cookies } from "next/headers";
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "@/lib/payload";
 import crypto from "crypto";
 
 // ---------------------------------------------------------------------------
@@ -19,6 +18,11 @@ function validateTotpCookie(cookieValue: string, userId: string): boolean {
 
   // Verify the cookie belongs to this user
   if (cookieUserId !== userId) return false;
+
+  // Verify the cookie hasn't expired (8-hour window)
+  const cookieTime = parseInt(timestamp, 36);
+  const maxAge = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+  if (isNaN(cookieTime) || Date.now() - cookieTime > maxAge) return false;
 
   // Verify the HMAC
   const expectedHmac = crypto
@@ -39,7 +43,7 @@ function validateTotpCookie(cookieValue: string, userId: string): boolean {
 
 export async function GET() {
   try {
-    const payload = await getPayload({ config });
+    const payload = await getPayloadClient();
     const headersList = await headers();
 
     const { user } = await payload.auth({ headers: headersList });

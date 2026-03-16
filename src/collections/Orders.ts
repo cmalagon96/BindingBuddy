@@ -18,6 +18,14 @@ export const Orders: CollectionConfig = {
     delete: isAdmin,
   },
   timestamps: true,
+  indexes: [
+    { fields: ["paymentId"] },
+    { fields: ["stripePaymentIntentId"] },
+    { fields: ["paypalOrderId"] },
+    { fields: ["status"] },
+    { fields: ["customerEmail"] },
+    { fields: ["status", "createdAt"] },
+  ],
   fields: [
     {
       name: "stripePaymentIntentId",

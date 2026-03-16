@@ -1,43 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+// Google Fonts are loaded via src/components/admin/Head.tsx (registered in
+// payload.config.ts as admin.components.head). Loading fonts there via
+// preconnect + <link rel="stylesheet"> avoids the "preloaded resource not used"
+// browser warning that Next.js triggers when it encounters a CSS @import url().
+
+// ── Animations (global, outside @layer so they're always available) ──────────
 
 @keyframes totp-spin {
   to { transform: rotate(360deg); }
 }
 
-@layer payload {
-  /* ============================================
-     BINDING BUDDY — Pokemon Admin Theme
-     ============================================ */
+@keyframes bb-card-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
 
-  /* --- Base Color Ramp Override ---
-     In dark mode Payload reverses the elevation mapping,
-     so --color-base-900 becomes --theme-elevation-0 (background). */
+@keyframes bb-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(230, 57, 70, 0.2), 0 4px 24px rgba(0, 0, 0, 0.4); }
+  50%       { box-shadow: 0 0 16px rgba(230, 57, 70, 0.35), 0 4px 24px rgba(0, 0, 0, 0.4); }
+}
+
+@layer payload {
+
+  /* ============================================================
+     BINDING BUDDY — Pokemon TCG Collector Admin Theme
+     ============================================================
+     Color palette:
+       Page bg:        #0F1117
+       Sidebar/cards:  #1A1D27  (#151821 deepest)
+       Borders:        #2A2D3A
+       Hover surfaces: #353849
+       Crimson accent: #E63946
+       Blue accent:    #3B6B9E
+       Success green:  #22c55e
+       Warning amber:  #f59e0b
+       Indigo:         #6366f1
+       Muted text:     #8B8FA8  #A0A3B8
+       Light text:     #F0F0F8  #C8CAD8
+     Fonts:
+       Display/KPI:    Barlow Condensed 600/700/900
+       Body/UI:        DM Sans 400/500/600
+     ============================================================ */
+
+  // ── Base Color Ramp Override ───────────────────────────────────────────────
+  // In dark mode Payload reverses the elevation mapping,
+  // so --color-base-900 becomes --theme-elevation-0 (page background).
+
   :root {
-    --color-base-0: #F8F8FF;
-    --color-base-50: #F0F0F8;
-    --color-base-100: #E8E8F0;
-    --color-base-150: #D8D9E3;
-    --color-base-200: #D0D1DB;
-    --color-base-250: #C0C2D0;
-    --color-base-300: #B8BAC8;
-    --color-base-350: #A8ABB8;
-    --color-base-400: #A0A3B8;
-    --color-base-450: #9498AD;
-    --color-base-500: #8B8FA8;
-    --color-base-550: #7E829A;
-    --color-base-600: #6B6F85;
-    --color-base-650: #4A4E63;
-    --color-base-700: #353849;
-    --color-base-750: #2A2D3A;
-    --color-base-800: #1A1D27;
-    --color-base-850: #151821;
-    --color-base-900: #0F1117;
-    --color-base-950: #0A0C12;
+    --color-base-0:    #F8F8FF;
+    --color-base-50:   #F0F0F8;
+    --color-base-100:  #E8E8F0;
+    --color-base-150:  #D8D9E3;
+    --color-base-200:  #D0D1DB;
+    --color-base-250:  #C0C2D0;
+    --color-base-300:  #B8BAC8;
+    --color-base-350:  #A8ABB8;
+    --color-base-400:  #A0A3B8;
+    --color-base-450:  #9498AD;
+    --color-base-500:  #8B8FA8;
+    --color-base-550:  #7E829A;
+    --color-base-600:  #6B6F85;
+    --color-base-650:  #4A4E63;
+    --color-base-700:  #353849;
+    --color-base-750:  #2A2D3A;
+    --color-base-800:  #1A1D27;
+    --color-base-850:  #151821;
+    --color-base-900:  #0F1117;
+    --color-base-950:  #0A0C12;
     --color-base-1000: #050608;
 
-    /* --- Success color ramp (blue #3B6B9E based) ---
-       Used for focus rings, selection, links, action buttons */
-    --color-success-50: #EDF3F8;
+    // Success ramp — blue (#3B6B9E) used for focus rings, links, actions
+    --color-success-50:  #EDF3F8;
     --color-success-100: #D4E2EE;
     --color-success-150: #BDD2E5;
     --color-success-200: #A5C1DB;
@@ -57,32 +89,52 @@
     --color-success-900: #05090E;
     --color-success-950: #030507;
 
-    /* --- Font Override --- */
-    --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont,
-      'Segoe UI', Roboto, sans-serif;
+    // Font override
+    --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-    /* --- Slightly more rounded corners --- */
+    // Slightly more rounded corners
     --style-radius-s: 6px;
     --style-radius-m: 8px;
     --style-radius-l: 12px;
   }
 
-  /* --- Primary Button: crimson accent --- */
+  // ── Primary Button — crimson accent ───────────────────────────────────────
+
   .btn--style-primary {
-    --bg-color: #E63946;
-    --color: #FFFFFF;
-    --hover-bg: #C62D38;
+    --bg-color:    #E63946;
+    --color:       #FFFFFF;
+    --hover-bg:    #C62D38;
     --hover-color: #FFFFFF;
 
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+
     &.btn--disabled {
-      --bg-color: #353849;
-      --color: #8B8FA8;
-      --hover-bg: #353849;
+      --bg-color:    #353849;
+      --color:       #8B8FA8;
+      --hover-bg:    #353849;
       --hover-color: #8B8FA8;
     }
   }
 
-  /* --- Login / Create-First-User page layout --- */
+  // ── Secondary/Outline Buttons ─────────────────────────────────────────────
+
+  .btn--style-secondary,
+  .btn--style-pill {
+    border-color: #2A2D3A;
+    color: #A0A3B8;
+    transition: border-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      border-color: #E63946;
+      color: #F0F0F8;
+    }
+  }
+
+  // ── Login / Create-First-User Layout ──────────────────────────────────────
+
   .template-minimal {
     position: relative;
     min-height: 100vh;
@@ -92,7 +144,7 @@
     padding: 2rem 1.5rem;
     background: var(--theme-bg);
 
-    /* Faded Pikachu Ball linework background */
+    // Faded Pokeball background
     &::before {
       content: '';
       position: absolute;
@@ -103,28 +155,20 @@
       pointer-events: none;
     }
 
-    /* Subtle gradient overlay */
+    // Subtle radial gradient overlays
     &::after {
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(
-          ellipse at 50% 0%,
-          rgba(59, 107, 158, 0.1) 0%,
-          transparent 60%
-        ),
-        radial-gradient(
-          ellipse at 50% 100%,
-          rgba(230, 57, 70, 0.05) 0%,
-          transparent 50%
-        );
+      background:
+        radial-gradient(ellipse at 50% 0%,   rgba(59, 107, 158, 0.10) 0%, transparent 60%),
+        radial-gradient(ellipse at 50% 100%, rgba(230, 57, 70, 0.05)  0%, transparent 50%);
       pointer-events: none;
     }
   }
 
-  /* ============================================
-     CARD / MODAL WRAPPER
-     ============================================ */
+  // ── Login Card ─────────────────────────────────────────────────────────────
+
   .template-minimal__wrap {
     position: relative;
     z-index: 1;
@@ -139,17 +183,15 @@
       0 0 0 1px rgba(230, 57, 70, 0.03);
   }
 
-  /* ============================================
-     LOGO AREA (login page)
-     ============================================ */
+  // ── Login Brand ────────────────────────────────────────────────────────────
+
   .login__brand {
     text-align: center;
     margin-bottom: 2rem;
   }
 
-  /* ============================================
-     CREATE-FIRST-USER HEADINGS
-     ============================================ */
+  // ── Create-First-User Headings ─────────────────────────────────────────────
+
   .create-first-user {
     h1 {
       font-family: 'Barlow Condensed', sans-serif;
@@ -168,12 +210,10 @@
     }
   }
 
-  /* ============================================
-     FORM INTERIOR — Scoped to login/signup pages
-     ============================================ */
+  // ── Form Internals (scoped to login/signup templates) ─────────────────────
+
   .template-minimal {
 
-    /* --- Field spacing --- */
     .field-type {
       margin-bottom: 1.25rem;
     }
@@ -188,7 +228,6 @@
       gap: 1.25rem;
     }
 
-    /* --- Labels --- */
     .field-label {
       display: block;
       padding-bottom: 0.5rem;
@@ -198,12 +237,9 @@
       color: #A0A3B8;
       letter-spacing: 0.01em;
 
-      .required {
-        color: #E63946;
-      }
+      .required { color: #E63946; }
     }
 
-    /* --- Text / Email / Password Inputs --- */
     .field-type.text input,
     .field-type.email input,
     .field-type.password input,
@@ -220,13 +256,9 @@
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
-      &::placeholder {
-        color: #6B6F85;
-      }
+      &::placeholder { color: #6B6F85; }
 
-      &:hover {
-        border-color: #353849;
-      }
+      &:hover { border-color: #353849; }
 
       &:focus,
       &:focus-within {
@@ -238,7 +270,7 @@
       }
     }
 
-    /* --- Select Dropdown (React Select) --- */
+    // React-Select dropdown
     .rs__control {
       min-height: 44px;
       background: #0F1117 !important;
@@ -248,9 +280,7 @@
       cursor: pointer;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
-      &:hover {
-        border-color: #353849 !important;
-      }
+      &:hover { border-color: #353849 !important; }
 
       &--is-focused,
       &--menu-is-open {
@@ -261,28 +291,18 @@
       }
     }
 
-    .rs__single-value {
-      color: #F0F0F8 !important;
-      font-size: 0.875rem;
-    }
-
-    .rs__placeholder {
-      color: #6B6F85 !important;
-      font-size: 0.875rem;
-    }
+    .rs__single-value    { color: #F0F0F8 !important; font-size: 0.875rem; }
+    .rs__placeholder     { color: #6B6F85 !important; font-size: 0.875rem; }
+    .rs__input-container { color: #F0F0F8 !important; }
+    .rs__value-container { padding: 0 1rem !important; }
 
     .rs__indicator {
       color: #8B8FA8 !important;
       padding: 0 0.75rem;
-
-      &:hover {
-        color: #E63946 !important;
-      }
+      &:hover { color: #E63946 !important; }
     }
 
-    .rs__indicator-separator {
-      display: none;
-    }
+    .rs__indicator-separator { display: none; }
 
     .rs__menu {
       background: #1A1D27 !important;
@@ -293,9 +313,7 @@
       margin-top: 4px !important;
     }
 
-    .rs__menu-list {
-      padding: 4px !important;
-    }
+    .rs__menu-list { padding: 4px !important; }
 
     .rs__option {
       padding: 0.625rem 0.75rem !important;
@@ -304,29 +322,11 @@
       cursor: pointer;
       transition: background 0.15s ease;
 
-      &--is-focused {
-        background: rgba(59, 107, 158, 0.15) !important;
-        color: #F0F0F8 !important;
-      }
-
-      &--is-selected {
-        background: #3B6B9E !important;
-        color: #F0F0F8 !important;
-      }
+      &--is-focused  { background: rgba(59, 107, 158, 0.15) !important; color: #F0F0F8 !important; }
+      &--is-selected { background: #3B6B9E !important; color: #F0F0F8 !important; }
     }
 
-    .rs__input-container {
-      color: #F0F0F8 !important;
-    }
-
-    .rs__value-container {
-      padding: 0 1rem !important;
-    }
-
-    /* --- Submit Button --- */
-    .form-submit {
-      margin-top: 0.5rem;
-    }
+    .form-submit { margin-top: 0.5rem; }
 
     .form-submit .btn,
     .btn--style-primary {
@@ -362,7 +362,6 @@
       }
     }
 
-    /* --- Login form input wrapper spacing --- */
     .login__form__inputWrap {
       display: flex;
       flex-direction: column;
@@ -370,25 +369,22 @@
       margin-bottom: 1.5rem;
     }
 
-    /* --- Forgot password link --- */
     .login__form a {
       display: inline-block;
       color: #8B8FA8;
       font-size: 0.8125rem;
       margin-bottom: 0.5rem;
       transition: color 0.2s ease;
-
-      &:hover {
-        color: #E63946;
-      }
+      &:hover { color: #E63946; }
     }
   }
 
-  /* ============================================
-     ADMIN DASHBOARD LAYOUT
-     ============================================ */
+  // ─────────────────────────────────────────────────────────────────────────
+  //  AUTHENTICATED ADMIN CHROME
+  // ─────────────────────────────────────────────────────────────────────────
 
-  /* --- Sidebar Nav --- */
+  // ── Sidebar Nav ───────────────────────────────────────────────────────────
+
   .nav {
     background: #0F1117;
     border-right: 1px solid #2A2D3A;
@@ -402,65 +398,1366 @@
     text-transform: uppercase;
 
     &:hover,
-    &:focus {
-      color: #E63946;
-    }
+    &:focus { color: #E63946; }
   }
 
+  // Nav links — active state: left crimson border + tinted background
   .nav__link {
     color: #A0A3B8;
-    transition: color 0.15s ease;
+    border-left: 3px solid transparent;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    padding-left: calc(var(--base) - 3px); // compensate for border width
 
     &:hover,
     &:focus-visible {
       color: #F0F0F8;
+      background: rgba(230, 57, 70, 0.06);
+      border-left-color: rgba(230, 57, 70, 0.4);
     }
 
     &.active {
       color: #F0F0F8;
       font-weight: 600;
+      background: rgba(230, 57, 70, 0.10);
+      border-left-color: #E63946;
     }
   }
 
-  .nav__link-indicator {
-    background: #E63946;
-  }
+  .nav__link-indicator { background: #E63946; }
 
   .nav__controls {
     border-top: 1px solid #2A2D3A;
     padding-top: 1rem;
   }
 
-  /* --- App Header --- */
+  // ── Top Header Bar ────────────────────────────────────────────────────────
+
   .app-header {
     background: #0F1117;
     border-bottom: 1px solid #2A2D3A;
   }
 
-  /* --- Main content area --- */
+  // ── Main Content Area ─────────────────────────────────────────────────────
+
   .template-default__wrap {
     background: #0F1117;
   }
 
-  /* --- Dashboard heading --- */
+  // ── Dashboard Headings ────────────────────────────────────────────────────
+
   .dashboard__wrap {
     h2 {
       font-family: 'Barlow Condensed', sans-serif;
       font-weight: 700;
-      letter-spacing: -0.01em;
+      font-size: 1.1rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #8B8FA8;
     }
   }
 
-  /* --- Collection cards on dashboard --- */
+  // ── Collection Cards (dashboard tile grid) ────────────────────────────────
+
   .card {
     background: #1A1D27;
     border: 1px solid #2A2D3A;
     border-radius: 8px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 
     &:hover {
       border-color: #3B6B9E;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow:
+        0 0 0 1px rgba(59, 107, 158, 0.12),
+        0 4px 16px rgba(0, 0, 0, 0.35);
+      transform: translateY(-1px);
+    }
+
+    // Card header text
+    &__header {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
   }
-}
+
+  // ── Table / List Views ────────────────────────────────────────────────────
+
+  // Table header cells
+  .table thead th,
+  .list-controls__sort button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #8B8FA8;
+    text-transform: uppercase;
+  }
+
+  // Table body rows
+  .table tbody tr {
+    border-bottom: 1px solid rgba(42, 45, 58, 0.7);
+    transition: background 0.1s ease;
+
+    &:hover td {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    &:last-child { border-bottom: none; }
+  }
+
+  .table tbody td {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    color: #C8CAD8;
+    vertical-align: middle;
+  }
+
+  // Row action link
+  .row-link {
+    color: #A0A3B8;
+    transition: color 0.15s ease;
+    &:hover { color: #F0F0F8; }
+  }
+
+  // ── Pagination ────────────────────────────────────────────────────────────
+
+  .pagination {
+    .btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: #A0A3B8;
+      border-color: #2A2D3A;
+      transition: color 0.15s ease, border-color 0.15s ease;
+
+      &:hover {
+        color: #F0F0F8;
+        border-color: #E63946;
+      }
+    }
+
+    .btn--active {
+      background: rgba(230, 57, 70, 0.12);
+      color: #E63946;
+      border-color: rgba(230, 57, 70, 0.3);
+    }
+  }
+
+  // ── Form Fields (record edit views) ──────────────────────────────────────
+
+  .field-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #A0A3B8;
+
+    .required { color: #E63946; }
+  }
+
+  .field-description {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #6B6F85;
+    margin-top: 4px;
+  }
+
+  // Text, number, textarea inputs in record forms
+  .field-type:not(.template-minimal .field-type) {
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="url"],
+    textarea {
+      background: #151821;
+      border: 1px solid #2A2D3A;
+      border-radius: 6px;
+      color: #F0F0F8;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &::placeholder { color: #4A4E63; }
+
+      &:hover { border-color: #353849; }
+
+      &:focus {
+        border-color: #3B6B9E;
+        box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12);
+        outline: none;
+      }
+    }
+  }
+
+  // Checkbox + toggle
+  .checkbox-input__input:checked {
+    background: #E63946;
+    border-color: #E63946;
+  }
+
+  // Select dropdowns (React Select in forms)
+  .rs__control {
+    background: #151821 !important;
+    border-color: #2A2D3A !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &--is-focused {
+      border-color: #3B6B9E !important;
+      box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12) !important;
+    }
+  }
+
+  .rs__menu {
+    background: #1A1D27 !important;
+    border: 1px solid #2A2D3A !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .rs__option {
+    &--is-focused  { background: rgba(59, 107, 158, 0.15) !important; }
+    &--is-selected { background: #3B6B9E !important; }
+  }
+
+  // ── Toast / Notifications ─────────────────────────────────────────────────
+
+  .toast {
+    background: #1A1D27;
+    border: 1px solid #2A2D3A;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    color: #F0F0F8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+    &--success { border-left: 3px solid #22c55e; }
+    &--error   { border-left: 3px solid #E63946; }
+    &--warning { border-left: 3px solid #f59e0b; }
+  }
+
+  // ── Modal / Drawer ────────────────────────────────────────────────────────
+
+  .modal__content {
+    background: #151821;
+    border: 1px solid #2A2D3A;
+    border-radius: 12px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  }
+
+  .drawer__content {
+    background: #151821;
+    border-left: 1px solid #2A2D3A;
+  }
+
+  // ── Search Bar ────────────────────────────────────────────────────────────
+
+  .search-filter__input,
+  .list-controls__search input {
+    background: #1A1D27;
+    border: 1px solid #2A2D3A;
+    border-radius: 6px;
+    color: #F0F0F8;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &::placeholder { color: #4A4E63; }
+
+    &:focus {
+      border-color: #3B6B9E;
+      box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12);
+      outline: none;
+    }
+  }
+
+  // ── Breadcrumb ────────────────────────────────────────────────────────────
+
+  .step-nav {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+
+    a {
+      color: #8B8FA8;
+      text-decoration: none;
+      transition: color 0.15s ease;
+      &:hover { color: #E63946; }
+    }
+
+    .step-nav__last {
+      color: #F0F0F8;
+      font-weight: 500;
+    }
+  }
+
+  // ── Save / Action Buttons (record detail toolbar) ─────────────────────────
+
+  .doc-controls {
+    .btn--style-primary {
+      background: #E63946;
+      border: 2px solid #E63946;
+      border-radius: 6px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 2px 2px 0 rgba(230, 57, 70, 0.25);
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+
+      &:hover {
+        background: #C62D38;
+        border-color: #C62D38;
+        transform: translate(-1px, -1px);
+        box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.25);
+      }
+
+      &:active {
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0 rgba(230, 57, 70, 0.25);
+      }
+    }
+  }
+
+  // ── Collection List "Create New" Button ───────────────────────────────────
+
+  .list-header .btn--style-primary,
+  .collection-list .btn--style-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 2px solid #E63946;
+    border-radius: 5px;
+    box-shadow: 2px 2px 0 rgba(230, 57, 70, 0.2);
+    transition: background 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+
+    &:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.25);
+    }
+
+    &:active {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0 rgba(230, 57, 70, 0.2);
+    }
+  }
+
+  // ── Scrollbar ─────────────────────────────────────────────────────────────
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0F1117;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2A2D3A;
+    border-radius: 3px;
+    &:hover { background: #353849; }
+  }
+
+  // ── Selection ─────────────────────────────────────────────────────────────
+
+  ::selection {
+    background: rgba(230, 57, 70, 0.25);
+    color: #F0F0F8;
+  }
+
+  // ── Focus Rings ───────────────────────────────────────────────────────────
+
+  *:focus-visible {
+    outline: 2px solid rgba(59, 107, 158, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  // ── Media Queries ─────────────────────────────────────────────────────────
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  // =====================================================================
+  //  SIDEBAR NAVIGATION — TRAINER HQ Edition
+  // =====================================================================
+
+  // ── Sidebar container ────────────────────────────────────────────────
+
+  .nav {
+    background: #0A0C12;
+    border-right: 1px solid #1E2130;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // ── Logo / Brand header area ─────────────────────────────────────────
+  // Targets the logo wrapper Payload renders at the top of the nav.
+
+  .nav__logo-wrap,
+  .logo {
+    display: block;
+    padding: 1.25rem 1rem 1rem;
+    border-bottom: 1px solid #1E2130;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+
+    // Subtle pokeball watermark top-right
+    &::before {
+      content: '';
+      position: absolute;
+      right: -22px;
+      top: -22px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 12px solid rgba(230, 57, 70, 0.055);
+      pointer-events: none;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: -22px;
+      top: 17px;
+      width: 80px;
+      height: 2px;
+      background: rgba(230, 57, 70, 0.055);
+      pointer-events: none;
+    }
+  }
+
+  // ── Nav inner scroll region ─────────────────────────────────────────
+
+  .nav__scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 0;
+  }
+
+  // ── Collection group header: "COLLECTIONS" label ────────────────────
+
+  .nav-group {
+    margin-bottom: 0.25rem;
+  }
+
+  .nav-group__toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.5rem 1rem 0.375rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #353849;
+    cursor: default;
+    user-select: none;
+    transition: color 0.15s ease;
+
+    // Pokeball circle decoration
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      border: 1.5px solid #E63946;
+      flex-shrink: 0;
+      opacity: 0.35;
+    }
+
+    // Expanding rule after label
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(42, 45, 58, 0.7), transparent);
+      margin-left: 4px;
+    }
+
+    &:hover,
+    &:focus {
+      color: #8B8FA8;
+    }
+  }
+
+  // ── Nav items — with Unicode icon prefixes ───────────────────────────
+
+  .nav__link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 9px 1rem 9px calc(1rem + 3px);
+    border-left: 3px solid transparent;
+    color: #6B6F85;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    gap: 9px;
+
+    &:hover,
+    &:focus-visible {
+      color: #C8CAD8;
+      background: rgba(230, 57, 70, 0.055);
+      border-left-color: rgba(230, 57, 70, 0.35);
+    }
+
+    &.active,
+    &[aria-current="true"],
+    &[aria-current="page"] {
+      color: #F0F0F8;
+      font-weight: 600;
+      background: rgba(230, 57, 70, 0.10);
+      border-left-color: #E63946;
+
+      // Active glow dot at right
+      &::after {
+        content: '';
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #E63946;
+        opacity: 0.7;
+        box-shadow: 0 0 5px rgba(230, 57, 70, 0.6);
+      }
+    }
+  }
+
+  // Icon glyphs via ::before — target by href substring
+  .nav__link[href*="/collections/users"]::before    { content: '◉'; }
+  .nav__link[href*="/collections/media"]::before    { content: '⬡'; }
+  .nav__link[href*="/collections/products"]::before { content: '▦'; }
+  .nav__link[href*="/collections/orders"]::before   { content: '◈'; }
+  .nav__link[href="/admin"]::before                 { content: '⊞'; }
+  .nav__link[href*="/account"]::before              { content: '⊙'; }
+
+  .nav__link::before {
+    font-size: 13px;
+    line-height: 1;
+    color: #353849;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+    transition: color 0.15s ease;
+  }
+
+  .nav__link:hover::before,
+  .nav__link:focus-visible::before {
+    color: rgba(230, 57, 70, 0.55);
+  }
+
+  .nav__link.active::before,
+  .nav__link[aria-current="true"]::before,
+  .nav__link[aria-current="page"]::before {
+    color: #E63946;
+  }
+
+  // ── Active indicator built-in dot ───────────────────────────────────
+
+  .nav__link-indicator {
+    background: #E63946;
+  }
+
+  // ── Bottom controls zone ─────────────────────────────────────────────
+
+  .nav__controls {
+    border-top: 1px solid #1E2130;
+    padding: 0.75rem 0;
+    margin-top: auto;
+
+    .nav__link {
+      color: #353849;
+      font-size: 12.5px;
+
+      &:hover {
+        color: #8B8FA8;
+      }
+    }
+  }
+
+  // ── Collapse/expand toggle ───────────────────────────────────────────
+
+  .nav__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #151821;
+    border: 1px solid #2A2D3A;
+    color: #6B6F85;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: #252834;
+      border-color: #E63946;
+      color: #E63946;
+    }
+  }
+
+
+  // =====================================================================
+  //  TOP HEADER BAR — Premium chrome
+  // =====================================================================
+
+  .app-header {
+    background: #0A0C12;
+    border-bottom: 1px solid #1E2130;
+    position: relative;
+
+    // Hairline crimson top-edge accent
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(230, 57, 70, 0.25) 25%,
+        rgba(230, 57, 70, 0.25) 75%,
+        transparent 100%
+      );
+      pointer-events: none;
+    }
+  }
+
+  // ── Breadcrumb / route path ──────────────────────────────────────────
+
+  .step-nav {
+    display: flex;
+    align-items: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    gap: 0;
+
+    a {
+      color: #353849;
+      text-decoration: none;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color 0.15s ease, background 0.12s ease;
+
+      &:hover {
+        color: #8B8FA8;
+        background: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    // Slash separators
+    span:not(.step-nav__last) {
+      color: #2A2D3A;
+      margin: 0 2px;
+    }
+
+    // Current page
+    .step-nav__last {
+      color: #C8CAD8;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+  }
+
+  // ── Account avatar ring ─────────────────────────────────────────────
+
+  .avatar,
+  .account-link__avatar,
+  .nav__account-link img {
+    border-radius: 50%;
+    border: 1.5px solid rgba(230, 57, 70, 0.35);
+    box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.07);
+  }
+
+  // Account button wrapper in top-right
+  .account-link,
+  .app-header__account {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid #1E2130;
+    background: #0F1117;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      border-color: rgba(230, 57, 70, 0.25);
+      background: #151821;
+    }
+  }
+
+
+  // =====================================================================
+  //  COLLECTION LIST PAGES — Table, Controls, Pagination
+  // =====================================================================
+
+  // ── List page outer ──────────────────────────────────────────────────
+
+  .collection-list,
+  .list-wrap {
+    padding: 0;
+  }
+
+  // ── Page title area ──────────────────────────────────────────────────
+
+  .list-header,
+  .collection-list__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 1.75rem 1.25rem;
+    border-bottom: 1px solid #1E2130;
+    background: #0A0C12;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  // Collection h1 page title
+  .list-header h1,
+  .collection-list h1,
+  .template-default h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    letter-spacing: -0.01em;
+    color: #F0F0F8;
+    margin: 0;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    // Crimson accent bar at left
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 1em;
+      background: #E63946;
+      border-radius: 1.5px;
+      flex-shrink: 0;
+    }
+  }
+
+  // ── List controls bar ────────────────────────────────────────────────
+
+  .list-controls,
+  .list-controls-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 1rem 1.75rem;
+    border-bottom: 1px solid #1E2130;
+    background: #0D0F18;
+    flex-wrap: wrap;
+  }
+
+  // ── Search input with icon ───────────────────────────────────────────
+
+  .search-filter,
+  .list-controls__search {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+    max-width: 400px;
+
+    &::before {
+      content: '⌕';
+      position: absolute;
+      left: 0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px;
+      color: #2A2D3A;
+      pointer-events: none;
+      z-index: 1;
+      transition: color 0.15s ease;
+    }
+
+    &:focus-within::before {
+      color: #3B6B9E;
+    }
+
+    input,
+    .search-filter__input {
+      width: 100%;
+      height: 36px;
+      padding: 0 0.875rem 0 2.25rem;
+      background: #151821;
+      border: 1px solid #1E2130;
+      border-radius: 7px;
+      color: #C8CAD8;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &::placeholder {
+        color: #2A2D3A;
+        font-style: italic;
+      }
+
+      &:hover {
+        border-color: #2A2D3A;
+      }
+
+      &:focus {
+        border-color: #3B6B9E;
+        box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12);
+        outline: none;
+      }
+    }
+  }
+
+  // ── Columns / Filters pill buttons ──────────────────────────────────
+
+  .btn--style-pill {
+    height: 36px;
+    padding: 0 14px;
+    background: #151821;
+    border: 1px solid #1E2130;
+    border-radius: 7px;
+    color: #4A4E63;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+
+    &:hover {
+      color: #C8CAD8;
+      border-color: #2A2D3A;
+      background: #1A1D27;
+    }
+
+    &.active,
+    &[aria-expanded="true"] {
+      color: #E63946;
+      border-color: rgba(230, 57, 70, 0.3);
+      background: rgba(230, 57, 70, 0.06);
+    }
+  }
+
+  // ── Table header ─────────────────────────────────────────────────────
+
+  .table thead tr {
+    border-bottom: 1px solid #1E2130;
+    background: #0A0C12;
+  }
+
+  .table thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #353849;
+    white-space: nowrap;
+    border: none;
+
+    &:first-child { padding-left: 1.75rem; }
+    &:last-child  { padding-right: 1.75rem; }
+  }
+
+  // Column sort buttons inside th
+  .table thead th button,
+  .table thead th a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #353849;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    text-decoration: none;
+    transition: color 0.15s ease;
+
+    &:hover { color: #8B8FA8; }
+  }
+
+  // Sort arrow icons
+  .table thead .sort-column__indicator,
+  .table thead [aria-sort] .icon {
+    opacity: 0.35;
+    transition: opacity 0.15s ease;
+  }
+
+  .table thead [aria-sort="ascending"] .sort-column__indicator,
+  .table thead [aria-sort="descending"] .sort-column__indicator {
+    opacity: 1;
+    color: #E63946;
+  }
+
+  // ── Table body rows ──────────────────────────────────────────────────
+
+  .table tbody tr {
+    border-bottom: 1px solid rgba(30, 33, 48, 0.85);
+    transition: background 0.1s ease;
+
+    &:last-child { border-bottom: none; }
+
+    &:hover td,
+    &:hover .cell-link {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  .table tbody td,
+  .table__cell {
+    padding: 13px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    color: #8B8FA8;
+    vertical-align: middle;
+    border: none;
+
+    &:first-child { padding-left: 1.75rem; }
+    &:last-child  { padding-right: 1.75rem; }
+  }
+
+  // ── Row link cells ───────────────────────────────────────────────────
+
+  .cell-link {
+    color: #8B8FA8;
+    text-decoration: none;
+    display: block;
+    padding: 13px 16px;
+    transition: color 0.15s ease;
+
+    &:hover { color: #E8E8F0; }
+
+    // First-column title cells get brighter base color
+    &:first-child,
+    &--title {
+      color: #C8CAD8;
+      font-weight: 500;
+    }
+  }
+
+  .row-link {
+    color: #A0A3B8;
+    text-decoration: none;
+    transition: color 0.15s ease;
+
+    &:hover { color: #E63946; }
+  }
+
+  // ── Checkbox column ──────────────────────────────────────────────────
+
+  .cell-checkbox,
+  .table__selection-cell {
+    width: 44px;
+    padding-left: 1.25rem !important;
+    padding-right: 0 !important;
+
+    input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+      accent-color: #E63946;
+      cursor: pointer;
+    }
+  }
+
+  // ── Empty state ──────────────────────────────────────────────────────
+
+  .table__no-results,
+  .collection-list__no-results {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #353849;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  // ── Pagination ───────────────────────────────────────────────────────
+
+  .paginator,
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1rem 1.75rem;
+    border-top: 1px solid #1E2130;
+    background: #0A0C12;
+    flex-wrap: wrap;
+  }
+
+  // "1–10 of 47" info label
+  .paginator__page-info,
+  .pagination__count {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #353849;
+    letter-spacing: 0.01em;
+    margin-right: auto;
+  }
+
+  // Page buttons
+  .paginator__page,
+  .pagination .btn,
+  .paginator button {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #4A4E63;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.035);
+      border-color: #1E2130;
+      color: #C8CAD8;
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  }
+
+  // Active page
+  .paginator__page--active,
+  .pagination .btn--active,
+  .paginator button[aria-current="page"] {
+    background: rgba(230, 57, 70, 0.12);
+    border-color: rgba(230, 57, 70, 0.28);
+    color: #E63946;
+    font-weight: 700;
+
+    &:hover { background: rgba(230, 57, 70, 0.18); }
+  }
+
+  // ── Per-page selector ("Per Page: 10") ──────────────────────────────
+
+  .per-page,
+  .list-controls__per-page {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #353849;
+
+    label { color: #353849; white-space: nowrap; }
+
+    select {
+      height: 30px;
+      padding: 0 26px 0 10px;
+      background: #0F1117;
+      border: 1px solid #1E2130;
+      border-radius: 6px;
+      color: #6B6F85;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%232A2D3A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      transition: border-color 0.15s ease;
+
+      &:hover { border-color: #2A2D3A; }
+      &:focus  { border-color: #3B6B9E; outline: none; }
+    }
+  }
+
+  // ── Popup menus (column picker, filters) ────────────────────────────
+
+  .popup__content {
+    background: #151821;
+    border: 1px solid #2A2D3A;
+    border-radius: 8px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(255, 255, 255, 0.025);
+    padding: 6px;
+    min-width: 200px;
+
+    label,
+    .popup__option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: #6B6F85;
+      cursor: pointer;
+      transition: background 0.12s ease, color 0.12s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: #C8CAD8;
+      }
+
+      input[type="checkbox"] {
+        accent-color: #E63946;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+    }
+  }
+
+
+  // =====================================================================
+  //  RECORD EDIT PAGES — Form fields, doc controls, sidebar
+  // =====================================================================
+
+  // ── Document header (title + save button row) ────────────────────────
+
+  .doc-header,
+  .doc-controls__wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid #1E2130;
+    background: #0A0C12;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .doc-header__title,
+  .doc-wrap h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #F0F0F8;
+    margin: 0;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  // ── Save / publish buttons ───────────────────────────────────────────
+
+  .doc-controls {
+    .btn--style-primary {
+      background: #E63946;
+      border: 2px solid #E63946;
+      color: #ffffff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0 18px;
+      height: 36px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      box-shadow: 2px 2px 0 rgba(230, 57, 70, 0.25);
+      transition:
+        background 0.12s ease,
+        box-shadow 0.08s ease,
+        transform 0.08s ease;
+
+      &:hover:not(:disabled) {
+        background: #C62D38;
+        border-color: #C62D38;
+        transform: translate(-1px, -1px);
+        box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.3);
+      }
+
+      &:active:not(:disabled) {
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0 rgba(230, 57, 70, 0.2);
+      }
+
+      &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+
+    .btn--style-secondary {
+      height: 36px;
+      padding: 0 14px;
+      background: #0F1117;
+      border: 1px solid #1E2130;
+      border-radius: 5px;
+      color: #4A4E63;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s ease, color 0.15s ease;
+
+      &:hover {
+        border-color: #2A2D3A;
+        color: #8B8FA8;
+      }
+    }
+  }
+
+  // ── Record sidebar panel ─────────────────────────────────────────────
+
+  .doc-sidebar,
+  .doc-wrap__sidebar {
+    border-left: 1px solid #1E2130;
+    background: #0A0C12;
+    padding: 1.25rem;
+
+    h4, h5 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #353849;
+      margin: 0 0 0.75rem;
+    }
+  }
+
+  .doc-sidebar__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #1E2130;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #4A4E63;
+
+    &:last-child { border-bottom: none; }
+
+    span:last-child, strong {
+      color: #8B8FA8;
+      font-weight: 500;
+    }
+  }
+
+  // ── Form section headings ────────────────────────────────────────────
+
+  .render-fields__section-header,
+  .collapsible__header {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #353849;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid #1E2130;
+    margin-bottom: 1.25rem;
+  }
+
+  // ── Field label tighter spacing ──────────────────────────────────────
+
+  .render-fields .field-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.035em;
+    color: #6B6F85;
+    text-transform: none;
+    margin-bottom: 6px;
+  }
+
+  .field-description {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11.5px;
+    color: #353849;
+    margin-top: 5px;
+    line-height: 1.45;
+    font-style: italic;
+  }
+
+  // ── Text / number / textarea inputs (edit forms) ─────────────────────
+
+  .render-fields input[type="text"],
+  .render-fields input[type="email"],
+  .render-fields input[type="number"],
+  .render-fields input[type="url"],
+  .render-fields textarea {
+    background: #0F1117;
+    border: 1px solid #1E2130;
+    border-radius: 7px;
+    color: #E8E8F0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 9px 13px;
+    width: 100%;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &::placeholder {
+      color: #2A2D3A;
+      font-style: italic;
+    }
+
+    &:hover  { border-color: #2A2D3A; }
+
+    &:focus {
+      border-color: #3B6B9E;
+      box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12);
+      outline: none;
+    }
+  }
+
+  // ── Checkbox / toggle in forms ───────────────────────────────────────
+
+  .checkbox-input__input {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    accent-color: #E63946;
+    cursor: pointer;
+
+    &:checked {
+      background: #E63946;
+      border-color: #E63946;
+    }
+  }
+
+} // end @layer payload

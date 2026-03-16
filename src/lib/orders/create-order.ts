@@ -1,5 +1,4 @@
-import { getPayload } from "payload";
-import config from "@payload-config";
+import { getPayloadClient } from "@/lib/payload";
 import type { Order, OrderCreateInput, OrderStatus } from "./types";
 
 interface PayloadOrderDoc {
@@ -36,7 +35,7 @@ function docToOrder(doc: PayloadOrderDoc): Order {
  * Creates a new order in the database with status "pending".
  */
 export async function createOrder(input: OrderCreateInput): Promise<Order> {
-  const payload = await getPayload({ config });
+  const payload = await getPayloadClient();
 
   const doc = await payload.create({
     collection: "orders",
@@ -60,7 +59,7 @@ export async function createOrder(input: OrderCreateInput): Promise<Order> {
  * Updates an existing order's status to "confirmed".
  */
 export async function confirmOrder(orderId: string): Promise<Order> {
-  const payload = await getPayload({ config });
+  const payload = await getPayloadClient();
 
   const doc = await payload.update({
     collection: "orders",

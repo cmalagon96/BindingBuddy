@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getPayPalApiBase, getPayPalAccessToken } from "@/lib/paypal";
-import { validateCartItems, calculateTotal } from "@/lib/checkout-validation";
+import {
+  validateAndPriceCartItems,
+  calculateTotal,
+} from "@/lib/checkout-validation";
+import { validateStock } from "@/lib/inventory/validate-stock";
 import { stores } from "@/lib/stores";
 import crypto from "crypto";
 
@@ -20,15 +24,40 @@ function signOrderId(orderId: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const items = validateCartItems(body.items);
+
+    // P1: Server-side price verification — prices come from DB, not client
+    const items = await validateAndPriceCartItems(body.items);
+
+    // P8: Validate stock BEFORE creating the PayPal order
+    const stockResult = await validateStock(
+      items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        variantLabel: i.variant,
+      }))
+    );
+    if (!stockResult.valid) {
+      return NextResponse.json(
+        {
+          error: "Some items are out of stock",
+          unavailableItems: stockResult.unavailableItems,
+        },
+        { status: 400 }
+      );
+    }
+
     const totalCents = calculateTotal(items);
     const totalDollars = (totalCents / 100).toFixed(2);
 
     const cookieStore = await cookies();
     const cookieRef = cookieStore.get("store_ref")?.value || "organic";
-    // Body storeRef (from fallback picker) takes priority if valid
+    // P21: Validate cookie-sourced storeRef against allowlist too
     const storeRef =
-      body.storeRef && stores[body.storeRef] ? body.storeRef : cookieRef;
+      body.storeRef && stores[body.storeRef]
+        ? body.storeRef
+        : stores[cookieRef]
+          ? cookieRef
+          : "organic";
 
     const accessToken = await getPayPalAccessToken();
     const base = getPayPalApiBase();
@@ -55,7 +84,6 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text();
-      // HIGH-11: Log full error, return generic message
       console.error("[paypal/create-order] PayPal API error:", text);
       return NextResponse.json(
         { error: "Payment processing failed" },
@@ -74,9 +102,37 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 30, // 30 minutes — generous for checkout
     });
 
+    // P2: Store cart data in a signed cookie so capture route can create the order.
+    // We encode items, customerEmail, shippingAddress, storeRef, and total.
+    const pendingOrderData = JSON.stringify({
+      items: items.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+        variant: i.variant,
+      })),
+      customerEmail: body.customerEmail,
+      shippingAddress: body.shippingAddress,
+      storeRef,
+      totalCents,
+    });
+    const pendingOrderB64 = Buffer.from(pendingOrderData).toString("base64");
+    const pendingOrderSig = crypto
+      .createHmac("sha256", process.env.PAYLOAD_SECRET!)
+      .update(`pp_pending:${pendingOrderB64}`)
+      .digest("hex");
+
+    cookieStore.set("pp_pending_order", `${pendingOrderB64}.${pendingOrderSig}`, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 30,
+    });
+
     return NextResponse.json({ orderId: order.id });
   } catch (err) {
-    // HIGH-11: Log full error, return generic message
     console.error("[paypal/create-order] Unhandled error:", err);
     return NextResponse.json(
       { error: "Payment processing failed" },
