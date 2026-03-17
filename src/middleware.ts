@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Payment routes get strict nonce-based CSP; other public routes get relaxed CSP.
+const PAYMENT_ROUTES = ["/checkout", "/cart", "/contact", "/mfa-verify"];
+
+function isPaymentRoute(pathname: string): boolean {
+  return PAYMENT_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+const SHARED_DIRECTIVES = [
+  "default-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://*.stripe.com https://www.paypalobjects.com",
+  "frame-src https://js.stripe.com https://hooks.stripe.com https://www.paypal.com https://www.sandbox.paypal.com",
+  "connect-src 'self' https://api.stripe.com https://q.stripe.com https://www.paypal.com https://www.sandbox.paypal.com https://www.paypalobjects.com",
+  "worker-src 'self' blob:",
+  "frame-ancestors 'none'",
+];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -20,8 +38,54 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Store referral cookie — from ?ref= query param OR /ref/[slug] path
-  const response = NextResponse.next();
+  // --- CSP injection (skip admin routes — handled by static header in next.config.ts) ---
+  const requestHeaders = new Headers(request.headers);
+  let cspHeader: string;
+
+  if (pathname.startsWith("/admin")) {
+    // Admin CSP is set via next.config.ts static headers — pass through.
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    return applyReferralCookie(request, response, pathname);
+  }
+
+  const isDev = process.env.NODE_ENV !== "production";
+
+  if (isPaymentRoute(pathname)) {
+    // Nonce-based CSP for payment routes.
+    // NOTE: 'strict-dynamic' is intentionally NOT used here because it causes
+    // browsers to ignore 'self', which blocks webpack chunk loading for
+    // next/dynamic imports (ChunkLoadError). Instead we use 'self' + nonce
+    // so that same-origin chunks load normally while inline scripts still
+    // require the nonce.
+    const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64");
+    requestHeaders.set("x-nonce", nonce);
+
+    const devEval = isDev ? " 'unsafe-eval'" : "";
+    const scriptSrc = `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com${devEval}`;
+    cspHeader = [...SHARED_DIRECTIVES, scriptSrc].join("; ");
+  } else {
+    // Relaxed CSP for other public routes
+    const devEval = isDev ? " 'unsafe-eval'" : "";
+    const scriptSrc = `script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com${devEval}`;
+    cspHeader = [...SHARED_DIRECTIVES, scriptSrc].join("; ");
+  }
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  response.headers.set("Content-Security-Policy", cspHeader);
+
+  return applyReferralCookie(request, response, pathname);
+}
+
+/** Store referral cookie — from ?ref= query param OR /ref/[slug] path */
+function applyReferralCookie(
+  request: NextRequest,
+  response: NextResponse,
+  pathname: string,
+): NextResponse {
   const queryRef = request.nextUrl.searchParams.get("ref");
   const pathMatch = pathname.match(/^\/ref\/([a-z0-9-]+)$/);
   const storeRef = queryRef || (pathMatch ? pathMatch[1] : null);
@@ -42,5 +106,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images/).*)"],
+  matcher: [
+    {
+      source: "/((?!_next/static|_next/image|favicon.ico|images/).*)",
+      missing: [{ type: "header", key: "next-router-prefetch" }],
+    },
+  ],
 };

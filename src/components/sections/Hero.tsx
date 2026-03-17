@@ -1,15 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 import Button from "@/components/ui/Button";
-
-const MotionDiv = dynamic(
-  () => import("framer-motion").then((mod) => {
-    const Component = mod.motion.div;
-    return { default: Component };
-  }),
-  { ssr: false }
-);
 
 export default function Hero() {
   return (
@@ -20,7 +12,7 @@ export default function Hero() {
         <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-poke-yellow opacity-[0.04] rounded-full blur-[100px]" />
       </div>
 
-      <MotionDiv
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -48,7 +40,7 @@ export default function Hero() {
             View Featured
           </Button>
         </div>
-      </MotionDiv>
+      </motion.div>
     </section>
   );
 }

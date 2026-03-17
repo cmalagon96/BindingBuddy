@@ -1,14 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const MotionDiv = dynamic(
-  () => import("framer-motion").then((mod) => {
-    const Component = mod.motion.div;
-    return { default: Component };
-  }),
-  { ssr: false }
-);
+import { motion } from "framer-motion";
 
 interface Props {
   children: React.ReactNode;
@@ -16,12 +8,12 @@ interface Props {
 
 export default function PageTransition({ children }: Props) {
   return (
-    <MotionDiv
+    <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
       {children}
-    </MotionDiv>
+    </motion.div>
   );
 }

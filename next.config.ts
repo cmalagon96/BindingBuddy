@@ -41,25 +41,6 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // CSP for public storefront routes (everything except admin)
-        source: "/((?!admin).*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "script-src 'self' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://*.stripe.com",
-              "frame-src https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com",
-              "connect-src 'self' https://api.stripe.com https://www.paypal.com https://www.sandbox.paypal.com",
-              "frame-ancestors 'none'",
-            ].join("; "),
-          },
-        ],
-      },
-      {
         // Stricter CSP for the Payload admin panel
         source: "/admin(.*)",
         headers: [
