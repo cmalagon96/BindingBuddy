@@ -17,6 +17,9 @@ export const Media: CollectionConfig = {
   },
   admin: {
     useAsTitle: "alt",
+    components: {
+      beforeList: ["/src/components/admin/BeforeCollectionList"],
+    },
   },
   access: {
     read: () => true,
@@ -29,6 +32,11 @@ export const Media: CollectionConfig = {
       name: "alt",
       type: "text",
       required: true,
+      admin: {
+        components: {
+          Cell: "/src/components/admin/MediaThumbnailCell",
+        },
+      },
     },
   ],
 };

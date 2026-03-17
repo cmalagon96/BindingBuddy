@@ -49,8 +49,8 @@ const BB_STYLES = [
   ".bb-quick-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:0;animation:bb-fade-up .4s ease .05s both}",
   ".bb-quick-action{display:flex;align-items:center;gap:8px;padding:10px 18px;background:#1A1D27;border:1.5px solid #2A2D3A;border-radius:6px;text-decoration:none;color:#A0A3B8;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all .15s ease;white-space:nowrap}",
   ".bb-quick-action:hover{color:var(--qa-accent,#E63946);border-color:var(--qa-accent,#E63946);background:rgba(26,29,39,.9);box-shadow:0 0 0 1px var(--qa-accent,#E63946),3px 3px 0 var(--qa-accent,#E63946),0 4px 12px rgba(0,0,0,.3);transform:translate(-1px,-1px)}",
-  ".bb-quick-action__icon{font-size:16px;line-height:1;color:var(--qa-accent,#E63946);opacity:.75;transition:opacity .15s ease}",
-  ".bb-quick-action:hover .bb-quick-action__icon{opacity:1}",
+  ".bb-quick-action__icon{font-size:16px;line-height:1;color:#8B8FA8;transition:color .15s ease}",
+  ".bb-quick-action:hover .bb-quick-action__icon{color:var(--qa-accent,#E63946)}",
   ".bb-quick-action__label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase}",
 
   // Table

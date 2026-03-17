@@ -543,16 +543,8 @@
   }
 
   // ── Form Fields (record edit views) ──────────────────────────────────────
-
-  .field-label {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    color: #A0A3B8;
-
-    .required { color: #E63946; }
-  }
+  // .field-label base — superseded by label.field-label block in create/edit section.
+  // Kept as fallback; actual overrides done with element+class specificity below.
 
   .field-description {
     font-family: 'DM Sans', sans-serif;
@@ -616,6 +608,24 @@
   .rs__option {
     &--is-focused  { background: rgba(59, 107, 158, 0.15) !important; }
     &--is-selected { background: #3B6B9E !important; }
+  }
+
+  // ── Fix 18: Global react-select input overflow ────────────────────────────
+  // ALL react-select instances (language select, relationship fields, etc.)
+  // render .rs__input-container on grid-area: 1/2 with width: 100%, causing
+  // it to expand across the full parent and overlap sibling elements.
+  // Fix globally — no scope needed, this applies to every rs instance.
+
+  .rs__input-container {
+    width: auto !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
+  }
+
+  .rs__input {
+    width: auto !important;
+    min-width: 0 !important;
   }
 
   // ── Toast / Notifications ─────────────────────────────────────────────────
@@ -834,11 +844,19 @@
   }
 
   // ── Nav inner scroll region ─────────────────────────────────────────
+  // IMPORTANT: Do NOT override padding-block-start here.
+  // Payload sets --nav-padding-block-start: var(--app-header-height) so that
+  // the scrollable nav content starts below the absolutely-positioned
+  // nav__header overlay (which spans the full app-header height).
+  // Overriding that padding caused the "Collections" toggle button to be
+  // covered by the nav__header invisible overlay (Bug #2 fix).
 
   .nav__scroll {
     flex: 1;
     overflow-y: auto;
-    padding: 0.75rem 0;
+    // Only override inline padding; leave block-start/end to Payload defaults.
+    padding-inline-start: 0;
+    padding-inline-end: 0;
   }
 
   // ── Collection group header: "COLLECTIONS" label ────────────────────
@@ -1012,6 +1030,36 @@
   }
 
 
+  // ── Step-Nav home icon container ─────────────────────────────────────────
+  // Payload default is width/height: 18px for .step-nav__home.
+  // Our custom Icon component renders at 25×25px — expand the container so
+  // the icon isn't clipped. Also lift it above popups that open from within
+  // the same stacking context (Bug #1 fix: dropdown was covering the icon).
+
+  .step-nav__home {
+    width: 30px !important;
+    height: 30px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    // Fix 18 resolved the root cause (rs__input-container bleed) via
+    // .app-header__step-nav-wrapper width: auto + overflow: hidden.
+    // z-index kept as belt-and-suspenders; no longer fighting the overlay.
+    z-index: 20;
+    flex-shrink: 0;
+    overflow: visible;
+    // margin-left pulls icon slightly left for breathing room vs gutter edge.
+    padding: 0 !important;
+    margin-left: -8px;
+
+    > span,
+    > span > div {
+      position: relative;
+      z-index: 20;
+    }
+  }
+
   // =====================================================================
   //  TOP HEADER BAR — Premium chrome
   // =====================================================================
@@ -1047,7 +1095,8 @@
     align-items: center;
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    gap: 0;
+    gap: 8px;
+    min-width: 300px;
 
     a {
       color: #353849;
@@ -1062,10 +1111,10 @@
       }
     }
 
-    // Slash separators
+    // Slash separators — tighten margins now that gap handles spacing
     span:not(.step-nav__last) {
       color: #2A2D3A;
-      margin: 0 2px;
+      margin: 0;
     }
 
     // Current page
@@ -1074,6 +1123,42 @@
       font-weight: 600;
       letter-spacing: -0.01em;
     }
+  }
+
+  // ── Fix 18: step-nav-wrapper width & react-select input bleed ────────
+  // ROOT CAUSE: .app-header__step-nav-wrapper has `width: 100%` from
+  // Payload's own CSS, which makes it fill the entire flex container.
+  // Inside it, react-select's .rs__input-container sits on `grid-area: 1/2`
+  // and also expands to `width: 100%`, creating an invisible overlay that
+  // covers the BB icon at the left edge of .app-header__content.
+  //
+  // Fix: give the wrapper `width: auto` + `max-width` so it only takes
+  // the space it needs, and clip the rs__input-container so it cannot
+  // bleed outside its bounds.
+
+  .app-header__step-nav-wrapper {
+    width: auto !important;       // override Payload's width: 100%
+    max-width: calc(100% - 120px); // leave room for BB icon + account btn
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;             // prevent invisible input overflow
+    min-width: 0;                 // allow shrinking below content size
+  }
+
+  // Clip the invisible react-select input inside the step-nav
+  .app-header__step-nav-wrapper .rs__input-container,
+  .app-header__step-nav .rs__input-container,
+  .step-nav .rs__input-container {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    width: auto !important;
+  }
+
+  // Also cap the react-select control itself
+  .app-header__step-nav-wrapper .rs__control,
+  .app-header__step-nav .rs__control {
+    min-width: 0 !important;
+    overflow: hidden !important;
   }
 
   // ── Account avatar ring ─────────────────────────────────────────────
@@ -1118,23 +1203,31 @@
   }
 
   // ── Page title area ──────────────────────────────────────────────────
+  // BeforeCollectionList component renders a custom styled header above the
+  // built-in list-header. Hide the redundant h1 title from Payload's header
+  // (it duplicates our component) but keep the Create New button and actions.
 
   .list-header,
   .collection-list__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem 1.75rem 1.25rem;
+    padding: 0.75rem 1.75rem;
     border-bottom: 1px solid #1E2130;
     background: #0A0C12;
     flex-wrap: wrap;
     gap: 0.75rem;
   }
 
-  // Collection h1 page title
-  .list-header h1,
-  .collection-list h1,
-  .template-default h1 {
+  // Hide the default Payload collection h1 title — our BeforeCollectionList
+  // component already renders a styled title above the list-header.
+  .list-header__title,
+  .list-header h1 {
+    display: none !important;
+  }
+
+  // Collection h1 in non-list contexts (record edit pages, etc.) still shows.
+  .template-default h1:not(.list-header__title) {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
     font-size: clamp(1.5rem, 3vw, 2rem);
@@ -1261,13 +1354,28 @@
     }
   }
 
-  // ── Table header ─────────────────────────────────────────────────────
+  // ── Table wrapper ─────────────────────────────────────────────────────
+  // The .table element has isolation:isolate set by Payload — we wrap with
+  // .collection-list for higher specificity in the cascading override.
 
-  .table thead tr {
-    border-bottom: 1px solid #1E2130;
-    background: #0A0C12;
+  .collection-list .table,
+  .table {
+    margin-bottom: 0;
+
+    table {
+      border-collapse: collapse;
+    }
   }
 
+  // ── Table header ─────────────────────────────────────────────────────
+
+  .collection-list .table thead tr,
+  .table thead tr {
+    border-bottom: 1px solid #1E2130;
+    background: #0A0C12 !important;
+  }
+
+  .collection-list .table thead th,
   .table thead th {
     padding: 10px 16px;
     text-align: left;
@@ -1279,12 +1387,15 @@
     color: #353849;
     white-space: nowrap;
     border: none;
+    background: #0A0C12;
 
     &:first-child { padding-left: 1.75rem; }
     &:last-child  { padding-right: 1.75rem; }
   }
 
   // Column sort buttons inside th
+  .collection-list .table thead th button,
+  .collection-list .table thead th a,
   .table thead th button,
   .table thead th a {
     font-family: 'Barlow Condensed', sans-serif;
@@ -1319,31 +1430,67 @@
     color: #E63946;
   }
 
-  // ── Table body rows ──────────────────────────────────────────────────
+  // ── Table body rows ───────────────────────────────────────────────────
+  // Override Payload's nth-child(odd) zebra stripe with a flat dark background.
+  // Use !important on background because Payload sets it inline-style-equivalent
+  // via a layer rule on odd rows.
 
+  .collection-list .table tbody tr,
   .table tbody tr {
-    border-bottom: 1px solid rgba(30, 33, 48, 0.85);
-    transition: background 0.1s ease;
+    background: #0D0F18 !important; // flat base — kills Payload zebra stripe
+    border-bottom: 1px solid #232638 !important;
+    transition: background 0.12s ease;
+    position: relative;
 
-    &:last-child { border-bottom: none; }
-
-    &:hover td,
-    &:hover .cell-link {
-      background: rgba(255, 255, 255, 0.02);
-    }
+    &:last-child { border-bottom: none !important; }
   }
 
+  // Odd rows get a noticeable tint for clear visual rhythm
+  .collection-list .table tbody tr:nth-child(odd),
+  .table tbody tr:nth-child(odd) {
+    background: #12151F !important;
+  }
+
+  // Row hover — left accent bar + brighter surface
+  .collection-list .table tbody tr:hover,
+  .table tbody tr:hover {
+    background: rgba(59, 107, 158, 0.055) !important;
+    box-shadow: inset 3px 0 0 rgba(230, 57, 70, 0.45);
+  }
+
+  // Cells — force every td and th to inherit the row bg
+  .collection-list .table tbody td,
+  .collection-list .table tbody th,
   .table tbody td,
   .table__cell {
-    padding: 13px 16px;
+    padding: 12px 16px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13.5px;
-    color: #8B8FA8;
+    font-size: 13px;
+    color: #6B6F85; // muted default; title column overridden below
     vertical-align: middle;
-    border: none;
+    border: none !important;
+    background: transparent !important; // let row bg show through
 
     &:first-child { padding-left: 1.75rem; }
     &:last-child  { padding-right: 1.75rem; }
+  }
+
+  // ── Cell content: class^=cell spans/anchors ───────────────────────────
+  // Payload wraps cell values in <span> or <a> with class starting with "cell-".
+
+  .collection-list .table table [class^="cell"] > p,
+  .collection-list .table table [class^="cell"] > span,
+  .collection-list .table table [class^="cell"] > a {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: #6B6F85;
+  }
+
+  // First data column (title / name field) — brighter
+  .collection-list .table tbody td:nth-child(2),
+  .table tbody td:nth-child(2) {
+    color: #C8CAD8;
+    font-weight: 500;
   }
 
   // ── Row link cells ───────────────────────────────────────────────────
@@ -1352,17 +1499,23 @@
     color: #8B8FA8;
     text-decoration: none;
     display: block;
-    padding: 13px 16px;
+    padding: 12px 16px;
     transition: color 0.15s ease;
+    background: transparent !important;
 
     &:hover { color: #E8E8F0; }
 
-    // First-column title cells get brighter base color
-    &:first-child,
+    // First-column title cells
     &--title {
-      color: #C8CAD8;
+      color: #C8CAD8 !important;
       font-weight: 500;
     }
+  }
+
+  // Make sure hover on the row applies to cell-links too
+  .collection-list .table tbody tr:hover .cell-link,
+  .table tbody tr:hover .cell-link {
+    background: transparent !important;
   }
 
   .row-link {
@@ -1376,7 +1529,9 @@
   // ── Checkbox column ──────────────────────────────────────────────────
 
   .cell-checkbox,
-  .table__selection-cell {
+  .table__selection-cell,
+  .collection-list .table tbody td.cell-_select,
+  .collection-list .table thead th.cell-_select {
     width: 44px;
     padding-left: 1.25rem !important;
     padding-right: 0 !important;
@@ -1400,6 +1555,32 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-style: italic;
+  }
+
+  // Payload 3 empty state: .no-results container + h3 + p + actions button
+  .no-results {
+    margin: 2rem 1.75rem;
+    padding: 2.5rem 2rem;
+    background: #0F1219;
+    border: 1px solid #1E2130;
+    border-radius: 10px;
+    color: #8B8FA8;
+
+    h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.02em;
+      color: #F0F0F8;
+      margin: 0 0 6px;
+    }
+
+    p {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: #8B8FA8;
+      margin: 0 0 1.5rem;
+    }
   }
 
   // ── Pagination ───────────────────────────────────────────────────────
@@ -1549,10 +1730,9 @@
   //  RECORD EDIT PAGES — Form fields, doc controls, sidebar
   // =====================================================================
 
-  // ── Document header (title + save button row) ────────────────────────
+  // ── Document header (title row) ──────────────────────────────────────
 
-  .doc-header,
-  .doc-controls__wrapper {
+  .doc-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1572,6 +1752,55 @@
     margin: 0;
     letter-spacing: -0.01em;
     line-height: 1.1;
+  }
+
+  // ── Doc controls bar (metadata + save/publish row) ────────────────────
+  // Fix 14: doc-controls uses gutter classes (60px horizontal padding).
+  // Only style the wrapper's inner layout — no duplicate padding/border.
+
+  .doc-controls__wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .doc-controls {
+    background: #0A0C12;
+    border-bottom: 1px solid #1E2130;
+  }
+
+  // ── Account / user-edit page branding (Fix 13) ───────────────────────
+  // Payload has no beforeAccount slot. .doc-header is a sibling of
+  // .collection-edit--users (not a child), so we scope by the email
+  // h1 title attribute containing "@" — only user docs have email titles.
+
+  // Doc-header__header: stack vertically on user pages so eyebrow label
+  // appears above the email h1
+  .doc-header__header:has(.doc-header__title[title*='@']) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+
+    &::before {
+      content: 'Binding Buddy \00B7 Account Settings';
+      display: block;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #E63946;
+      line-height: 1;
+    }
+  }
+
+  // Style email address h1 with brand typography
+  .doc-header__title[title*='@'] {
+    font-size: clamp(18px, 2.5vw, 28px) !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.02em !important;
   }
 
   // ── Save / publish buttons ───────────────────────────────────────────
@@ -1693,17 +1922,8 @@
     margin-bottom: 1.25rem;
   }
 
-  // ── Field label tighter spacing ──────────────────────────────────────
-
-  .render-fields .field-label {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 11.5px;
-    font-weight: 600;
-    letter-spacing: 0.035em;
-    color: #6B6F85;
-    text-transform: none;
-    margin-bottom: 6px;
-  }
+  // ── Field label tighter spacing — superseded by label.field-label block below ──
+  // Kept as low-specificity fallback for any non-label elements with .field-label.
 
   .field-description {
     font-family: 'DM Sans', sans-serif;
@@ -1757,6 +1977,505 @@
     &:checked {
       background: #E63946;
       border-color: #E63946;
+    }
+  }
+
+
+  // =====================================================================
+  //  COLLECTION CREATE / EDIT FORM — Full typography & field treatment
+  //  Targets: /admin/collections/products/create (and all collection edit)
+  //  Payload renders forms inside .document-fields which wraps .render-fields.
+  //  We broaden selectors beyond .render-fields to catch all field contexts.
+  // =====================================================================
+
+  // ── Document fields layout ───────────────────────────────────────────
+
+  .document-fields {
+    background: #0F1117;
+  }
+
+  .document-fields__main {
+    padding: 1.75rem;
+  }
+
+  .document-fields__sidebar-wrap {
+    border-left: 1px solid #1E2130;
+    background: #0A0C12;
+  }
+
+  // ── Field label — Barlow Condensed uppercase eyebrow style ───────────
+  // Payload renders labels as <label class="field-label"> and scopes
+  // its own styles as `label.field-label:not(.unstyled)` inside
+  // @layer payload-default. Our @layer payload wins over payload-default,
+  // but we still need element+class specificity to reliably override.
+
+  label.field-label,
+  label.field-label:not(.unstyled),
+  .document-fields label.field-label,
+  .render-fields label.field-label,
+  .field-type label.field-label {
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: #4A4E63 !important;
+    padding-bottom: 7px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+
+    .required {
+      color: #E63946 !important;
+      font-weight: 700 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+  }
+
+  // ── Field description — slightly brighter italic hint ────────────────
+
+  .document-fields .field-description,
+  .render-fields .field-description,
+  .field-type .field-description {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px !important;
+    color: #353849 !important;
+    font-style: italic !important;
+    margin-top: 5px !important;
+    line-height: 1.45 !important;
+  }
+
+  // ── Field wrapper spacing ────────────────────────────────────────────
+
+  .document-fields .field-type,
+  .render-fields .field-type {
+    margin-bottom: 1.5rem;
+  }
+
+  // ── All text/email/number/url/textarea inputs in forms ───────────────
+  // Broaden from .render-fields to .document-fields and .field-type
+  // to catch inputs that Payload renders at different nesting depths.
+
+  .document-fields input[type="text"],
+  .document-fields input[type="email"],
+  .document-fields input[type="number"],
+  .document-fields input[type="url"],
+  .document-fields input[type="search"],
+  .document-fields textarea,
+  .field-type.text input,
+  .field-type.email input,
+  .field-type.number input,
+  .field-type.url input,
+  .field-type.textarea textarea {
+    background: #0F1117 !important;
+    border: 1px solid #1E2130 !important;
+    border-radius: 7px !important;
+    color: #E8E8F0 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13.5px !important;
+    padding: 9px 13px !important;
+    width: 100% !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+
+    &::placeholder {
+      color: #2A2D3A !important;
+      font-style: italic;
+    }
+
+    &:hover { border-color: #2A2D3A !important; }
+
+    &:focus {
+      border-color: #3B6B9E !important;
+      box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12) !important;
+      outline: none !important;
+    }
+  }
+
+  // ── Textarea specific — taller, monospace-ish for content fields ──────
+
+  .document-fields textarea,
+  .field-type.textarea textarea {
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  // ── Slug / code-style fields (field-type.text with slug class) ────────
+
+  .field-type.text.field--slug input,
+  .field-type[class*="slug"] input {
+    font-family: 'DM Mono', 'Fira Code', monospace !important;
+    font-size: 13px !important;
+    color: #6366f1 !important;
+    letter-spacing: 0.01em;
+  }
+
+  // ── Number field with increment/decrement ────────────────────────────
+
+  .field-type.number input::-webkit-inner-spin-button,
+  .field-type.number input::-webkit-outer-spin-button {
+    opacity: 0.4;
+    filter: invert(1);
+  }
+
+  // ── Array field — repeatable row block ───────────────────────────────
+
+  .array-field {
+    border: 1px solid #1E2130;
+    border-radius: 8px;
+    background: #0A0C12;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #0A0C12;
+      border-bottom: 1px solid #1E2130;
+    }
+
+    &__title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #353849;
+    }
+
+    // Individual row within array
+    &__row,
+    &__row-wrap {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #1E2130;
+      background: #0D0F18;
+      transition: background 0.12s ease;
+
+      &:last-child { border-bottom: none; }
+      &:hover { background: #121521; }
+    }
+  }
+
+  // Array "Add row" button
+  .array-field .btn--style-primary,
+  .array-actions .btn--style-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  // ── Upload / Dropzone ────────────────────────────────────────────────
+
+  .upload__wrap,
+  .upload-wrap {
+    border: 1px dashed #1E2130;
+    border-radius: 8px;
+    background: #0A0C12;
+    transition: border-color 0.2s ease, background 0.2s ease;
+
+    &:hover {
+      border-color: rgba(59, 107, 158, 0.4);
+      background: rgba(59, 107, 158, 0.03);
+    }
+  }
+
+  .dropzone {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+
+    p, span {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: #353849;
+    }
+
+    &--is-active,
+    &:focus-within {
+      border-color: #3B6B9E;
+      background: rgba(59, 107, 158, 0.05);
+    }
+  }
+
+  // ── Collapsible / Group fields ───────────────────────────────────────
+
+  .collapsible {
+    border: 1px solid #1E2130;
+    border-radius: 8px;
+    background: #0A0C12;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #1E2130;
+      transition: background 0.12s ease;
+
+      &:hover { background: rgba(255, 255, 255, 0.02); }
+    }
+
+    &__content {
+      padding: 1.25rem;
+      background: #0D0F18;
+    }
+  }
+
+  // ── Rich text / lexical editor ───────────────────────────────────────
+
+  .rich-text,
+  .rich-text-lexical {
+    border: 1px solid #1E2130;
+    border-radius: 7px;
+    background: #0F1117;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+
+    &:focus-within {
+      border-color: #3B6B9E;
+      box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12);
+    }
+
+    // Toolbar
+    &__toolbar,
+    .toolbar {
+      background: #0A0C12;
+      border-bottom: 1px solid #1E2130;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-wrap: wrap;
+    }
+
+    // Toolbar buttons
+    .toolbar__button,
+    .rich-text-lexical__toolbar button {
+      width: 30px;
+      height: 28px;
+      border-radius: 5px;
+      background: transparent;
+      border: none;
+      color: #4A4E63;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: background 0.12s ease, color 0.12s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #C8CAD8;
+      }
+
+      &.active,
+      &[aria-pressed="true"] {
+        background: rgba(59, 107, 158, 0.15);
+        color: #3B6B9E;
+      }
+    }
+
+    // Editable area
+    .editor__content-editable,
+    [contenteditable="true"] {
+      min-height: 120px;
+      padding: 12px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      color: #E8E8F0;
+      line-height: 1.6;
+      outline: none;
+
+      p { margin: 0 0 0.75rem; &:last-child { margin: 0; } }
+      h1, h2, h3 { font-family: 'Barlow Condensed', sans-serif; color: #F0F0F8; }
+    }
+  }
+
+  // ── Select / React-Select in document forms ──────────────────────────
+
+  .document-fields .rs__control,
+  .field-type.select .rs__control,
+  .field-type.relationship .rs__control {
+    background: #0F1117 !important;
+    border: 1px solid #1E2130 !important;
+    border-radius: 7px !important;
+    min-height: 40px !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+
+    &:hover { border-color: #2A2D3A !important; }
+
+    &--is-focused,
+    &--menu-is-open {
+      border-color: #3B6B9E !important;
+      box-shadow: 0 0 0 3px rgba(59, 107, 158, 0.12) !important;
+    }
+  }
+
+  .document-fields .rs__single-value { color: #E8E8F0 !important; font-size: 13.5px; }
+  .document-fields .rs__placeholder  { color: #2A2D3A !important; font-size: 13.5px; font-style: italic; }
+  .document-fields .rs__input-container { color: #E8E8F0 !important; }
+
+  // ── Relationship field pill badges ───────────────────────────────────
+
+  .document-fields .rs__multi-value {
+    background: rgba(59, 107, 158, 0.15) !important;
+    border: 1px solid rgba(59, 107, 158, 0.25) !important;
+    border-radius: 4px !important;
+  }
+
+  .document-fields .rs__multi-value__label {
+    color: #A0C4E8 !important;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px !important;
+  }
+
+  .document-fields .rs__multi-value__remove {
+    color: #6B8FB0 !important;
+    cursor: pointer;
+    &:hover { background: rgba(230, 57, 70, 0.15) !important; color: #E63946 !important; }
+  }
+
+  // ── Form page body — main content area ──────────────────────────────
+
+  .collection-edit,
+  .doc-wrap {
+    background: #0F1117;
+    min-height: calc(100vh - 60px);
+  }
+
+  // ── "Untitled" heading on new document pages ─────────────────────────
+  // .doc-header h1 on create pages shows "[Untitled]" — already handled
+  // by .template-default h1::before (crimson bar), but ensure it uses
+  // the right font/weight on the create page specifically.
+
+  .doc-header .doc-header__title,
+  .collection-edit .doc-header__title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    letter-spacing: -0.01em;
+    color: #8B8FA8; // muted — it's placeholder "[Untitled]"
+  }
+
+  // Once a title is set (title != "[Untitled]"), brighten
+  .doc-header__title:not([title="[Untitled]"]),
+  .doc-header__title:not([title=""]) {
+    color: #F0F0F8;
+  }
+
+  // ── Field group / block field container ──────────────────────────────
+
+  .blocks-field {
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #1E2130;
+      margin-bottom: 1.25rem;
+
+      h4 {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #353849;
+        margin: 0;
+      }
+    }
+
+    &__block {
+      border: 1px solid #1E2130;
+      border-radius: 8px;
+      background: #0A0C12;
+      margin-bottom: 1rem;
+      overflow: hidden;
+
+      &-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        background: #0A0C12;
+        border-bottom: 1px solid #1E2130;
+        gap: 8px;
+        cursor: pointer;
+        transition: background 0.12s ease;
+
+        &:hover { background: rgba(255, 255, 255, 0.015); }
+      }
+
+      &-content {
+        padding: 1.25rem;
+        background: #0D0F18;
+      }
+    }
+  }
+
+  // ── Tab navigation on create/edit forms (if tabs are present) ────────
+
+  .tabs-field__tabs-container,
+  .field-type.tabs {
+    border-bottom: 1px solid #1E2130;
+    margin-bottom: 1.5rem;
+
+    button, a {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #4A4E63;
+      padding: 8px 16px;
+      border-bottom: 2px solid transparent;
+      background: none;
+      border-radius: 0;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+
+      &:hover { color: #8B8FA8; }
+
+      &.active,
+      &[aria-selected="true"] {
+        color: #E63946;
+        border-bottom-color: #E63946;
+        font-weight: 600;
+      }
+    }
+  }
+
+  // ── "Save Changes" / action button in floating controls ──────────────
+  // Already handled by .doc-controls .btn--style-primary above but ensure
+  // the create page new-document button matches too.
+
+  .form-submit .btn--style-primary,
+  .document-actions .btn--style-primary {
+    background: #E63946;
+    border: 2px solid #E63946;
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0 18px;
+    height: 36px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 0 rgba(230, 57, 70, 0.25);
+
+    &:hover:not(:disabled) {
+      background: #C62D38;
+      border-color: #C62D38;
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.3);
     }
   }
 

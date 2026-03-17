@@ -48,14 +48,15 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+              "font-src 'self' https://fonts.gstatic.com data:",
               // Gravatar is added here (admin-only) because Payload loads user
               // avatars from gravatar.com. The public-facing site does not
               // have this header block and is not affected.
               "img-src 'self' data: blob: https://www.gravatar.com",
-              "connect-src 'self'",
+              "connect-src 'self' https://cdn.jsdelivr.net",
+              "worker-src 'self' blob: https://cdn.jsdelivr.net",
               "frame-ancestors 'none'",
             ].join("; "),
           },

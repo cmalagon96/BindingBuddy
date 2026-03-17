@@ -10,6 +10,9 @@ export const Products: CollectionConfig = {
   admin: {
     useAsTitle: "name",
     defaultColumns: ["name", "price", "category", "badge", "inStock"],
+    components: {
+      beforeList: ["/src/components/admin/BeforeCollectionList"],
+    },
   },
   access: {
     read: () => true,
@@ -20,7 +23,6 @@ export const Products: CollectionConfig = {
   indexes: [
     { fields: ["featured"] },
     { fields: ["category"] },
-    { fields: ["createdAt"] },
     { fields: ["category", "featured"] },
   ],
   fields: [
@@ -43,7 +45,12 @@ export const Products: CollectionConfig = {
       type: "number",
       required: true,
       min: 1,
-      admin: { description: "Price in cents (e.g. 3499 = $34.99). Minimum 1." },
+      admin: {
+        description: "Price in cents (e.g. 3499 = $34.99). Minimum 1.",
+        components: {
+          Cell: "/src/components/admin/PriceCell",
+        },
+      },
     },
     {
       name: "description",
@@ -117,7 +124,12 @@ export const Products: CollectionConfig = {
       name: "inStock",
       type: "checkbox",
       defaultValue: true,
-      admin: { position: "sidebar" },
+      admin: {
+        position: "sidebar",
+        components: {
+          Cell: "/src/components/admin/BooleanCell",
+        },
+      },
     },
   ],
 };

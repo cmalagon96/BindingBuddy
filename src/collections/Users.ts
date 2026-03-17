@@ -40,6 +40,9 @@ export const Users: CollectionConfig = {
   },
   admin: {
     useAsTitle: "email",
+    components: {
+      beforeList: ["/src/components/admin/BeforeCollectionList"],
+    },
   },
   access: {
     read: isAdmin,
@@ -93,6 +96,9 @@ export const Users: CollectionConfig = {
         readOnly: true,
         position: "sidebar",
         description: "Two-factor authentication status",
+        components: {
+          Cell: "/src/components/admin/BooleanCell",
+        },
       },
     },
   ],

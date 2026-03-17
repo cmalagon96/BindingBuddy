@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Payment routes get strict nonce-based CSP; other public routes get relaxed CSP.
-const PAYMENT_ROUTES = ["/checkout", "/cart", "/contact", "/mfa-verify"];
+const PAYMENT_ROUTES = ["/checkout", "/cart", "/contact"];
 
 function isPaymentRoute(pathname: string): boolean {
   return PAYMENT_ROUTES.some((route) => pathname.startsWith(route));
@@ -22,21 +22,9 @@ const SHARED_DIRECTIVES = [
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // P27: Server-side TOTP enforcement for /admin routes
-  // Simple cookie-presence check — no DB hits in middleware.
-  // Exempt: /mfa-verify (MFA verification page), /api/admin/totp/* (TOTP API),
-  //         static assets (handled by matcher config below)
-  if (
-    pathname.startsWith("/admin") &&
-    !pathname.startsWith("/mfa-verify") &&
-    !pathname.startsWith("/api/admin/totp") &&
-    !pathname.startsWith("/api/") &&
-    !request.cookies.get("totp_verified")
-  ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/mfa-verify";
-    return NextResponse.redirect(url);
-  }
+  // MFA enforcement is handled entirely by TOTPProvider (admin.components.providers).
+  // It covers all cases: not logged in, TOTP not enabled, needs verification, already verified.
+  // No middleware redirect needed — avoids redirect loops for unauthenticated users.
 
   // --- CSP injection (skip admin routes — handled by static header in next.config.ts) ---
   const requestHeaders = new Headers(request.headers);

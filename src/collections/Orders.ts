@@ -10,6 +10,9 @@ export const Orders: CollectionConfig = {
   admin: {
     useAsTitle: "customerEmail",
     defaultColumns: ["customerEmail", "total", "status", "createdAt"],
+    components: {
+      beforeList: ["/src/components/admin/BeforeCollectionList"],
+    },
   },
   access: {
     create: isAdmin,
@@ -25,6 +28,7 @@ export const Orders: CollectionConfig = {
     { fields: ["status"] },
     { fields: ["customerEmail"] },
     { fields: ["status", "createdAt"] },
+    { fields: ["createdAt", "storeRef"] },
   ],
   fields: [
     {
