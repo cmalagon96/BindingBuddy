@@ -94,9 +94,16 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Resolve store ref ---
+    // PI metadata is authoritative (set server-side at PI creation time).
+    // Cookie is a secondary fallback for cases where metadata is missing.
     const cookieStore = await cookies();
-    const cookieRef = cookieStore.get("store_ref")?.value || "organic";
-    const storeRef = stores[cookieRef] ? cookieRef : "organic";
+    const piMetaRef = typeof pi.metadata?.store_ref === "string" ? pi.metadata.store_ref : null;
+    const cookieRef = cookieStore.get("store_ref")?.value ?? null;
+    const rawRef = piMetaRef ?? cookieRef ?? "organic";
+    const storeRef = stores[rawRef] ? rawRef : "organic";
+    if (rawRef !== "organic" && !stores[rawRef]) {
+      console.warn(`[store-attribution] unregistered slug "${rawRef}", falling back to organic`);
+    }
 
     // --- Validate shipping address ---
     const shippingResult = validateShippingAddress(shippingAddress);

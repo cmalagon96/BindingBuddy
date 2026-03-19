@@ -40,12 +40,14 @@ export default function StoreReferralPicker({
 
     setSaving(true);
     try {
-      await fetch("/api/stores/set-ref", {
+      const res = await fetch("/api/stores/set-ref", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug }),
       });
-      onStoreSelected(slug);
+      if (res.ok) {
+        onStoreSelected(slug);
+      }
     } catch {
       // Silently fail — cookie not critical for checkout
     } finally {

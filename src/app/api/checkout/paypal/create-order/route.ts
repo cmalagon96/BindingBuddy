@@ -82,12 +82,16 @@ export async function POST(req: NextRequest) {
     const cookieStore = await cookies();
     const cookieRef = cookieStore.get("store_ref")?.value || "organic";
     // P21: Validate cookie-sourced storeRef against allowlist too
+    const rawRef = body.storeRef || cookieRef;
     const storeRef =
       body.storeRef && stores[body.storeRef]
         ? body.storeRef
         : stores[cookieRef]
           ? cookieRef
           : "organic";
+    if (rawRef !== "organic" && !stores[rawRef]) {
+      console.warn(`[store-attribution] unregistered slug "${rawRef}", falling back to organic`);
+    }
 
     const accessToken = await getPayPalAccessToken();
     const base = getPayPalApiBase();

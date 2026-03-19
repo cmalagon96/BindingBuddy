@@ -5,6 +5,7 @@ import { createOrder } from "@/lib/orders/create-order";
 import { sendOrderConfirmation } from "@/lib/email/send-order-confirmation";
 import { deductStock } from "@/lib/inventory/deduct-stock";
 import { validateShippingAddress } from "@/lib/shipping/validation";
+import { stores } from "@/lib/stores";
 import crypto from "crypto";
 
 // ---------------------------------------------------------------------------
@@ -204,6 +205,15 @@ export async function POST(req: NextRequest) {
     const paypalBuyerEmail: string =
       data.payer?.email_address || pendingOrder.customerEmail || "";
 
+    // Gap 6: custom_id from capture response as fallback for storeRef.
+    // The pending cookie's storeRef is primary; custom_id is a recovery path
+    // for cases where the cookie was lost between create and capture.
+    const customIdRef = typeof data.purchase_units?.[0]?.custom_id === "string"
+      ? data.purchase_units[0].custom_id
+      : null;
+    const rawStoreRef = pendingOrder.storeRef || customIdRef || "organic";
+    const storeRef = stores[rawStoreRef] ? rawStoreRef : "organic";
+
     // P2: Create the order record in the database
     // Validate shipping address before creating order
     const shippingResult = validateShippingAddress(pendingOrder.shippingAddress);
@@ -232,7 +242,7 @@ export async function POST(req: NextRequest) {
         shippingAddress,
         paymentMethod: "paypal",
         paymentId: orderId,
-        storeRef: pendingOrder.storeRef,
+        storeRef,
       });
 
       // Deduct stock

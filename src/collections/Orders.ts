@@ -42,6 +42,8 @@ export const Orders: CollectionConfig = {
     {
       name: "storeRef",
       type: "text",
+      defaultValue: "organic",
+      admin: { description: "Store that referred this order (auto-set from checkout)" },
     },
     {
       name: "total",
