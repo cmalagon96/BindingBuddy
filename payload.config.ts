@@ -30,7 +30,7 @@ export default buildConfig({
   collections: [Users, Media, Products, Orders, WeeklyReports],
   plugins: [
     vercelBlobStorage({
-      enabled: true,
+      enabled: !!process.env.BLOB_READ_WRITE_TOKEN,
       collections: {
         media: true,
       },
@@ -126,12 +126,6 @@ export default buildConfig({
             queue: "weekly-reports",
           },
         ],
-      },
-    ],
-    autoRun: [
-      {
-        queue: "weekly-reports",
-        cron: "*/5 * * * *", // Poll every 5 minutes
       },
     ],
   },
