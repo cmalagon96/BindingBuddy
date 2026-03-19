@@ -3,15 +3,20 @@
 import { useState } from "react";
 import { PayPalButtons } from "@paypal/react-paypal-js";
 import type { CartItem } from "@/lib/cart-store";
+import type { ShippingAddress } from "@/lib/shipping/validation";
 
 interface PayPalPaymentFormProps {
   items: CartItem[];
+  customerEmail?: string;
+  shippingAddress?: ShippingAddress;
   onSuccess: () => void;
   storeRef?: string | null;
 }
 
 export default function PayPalPaymentForm({
   items,
+  customerEmail,
+  shippingAddress,
   onSuccess,
   storeRef,
 }: PayPalPaymentFormProps) {
@@ -55,6 +60,8 @@ export default function PayPalPaymentForm({
                   quantity: i.quantity,
                   image: i.image,
                 })),
+                customerEmail,
+                shippingAddress,
                 ...(storeRef ? { storeRef } : {}),
               }),
             });

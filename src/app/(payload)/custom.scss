@@ -19,6 +19,16 @@
   50%       { box-shadow: 0 0 16px rgba(230, 57, 70, 0.35), 0 4px 24px rgba(0, 0, 0, 0.4); }
 }
 
+// ── React-select input fix (outside @layer to win cascade) ──────────────
+// The invisible react-select input picks up Payload's generic input styles
+// (border, background) making it visually appear as a box inside the select.
+input.rs__input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 @layer payload {
 
   /* ============================================================
@@ -119,17 +129,23 @@
     }
   }
 
+  // ── All Buttons — white text ─────────────────────────────────────────────
+
+  .btn {
+    color: #FFFFFF;
+  }
+
   // ── Secondary/Outline Buttons ─────────────────────────────────────────────
 
   .btn--style-secondary,
   .btn--style-pill {
     border-color: #2A2D3A;
-    color: #A0A3B8;
+    color: #FFFFFF;
     transition: border-color 0.15s ease, color 0.15s ease;
 
     &:hover {
       border-color: #E63946;
-      color: #F0F0F8;
+      color: #FFFFFF;
     }
   }
 
@@ -525,12 +541,12 @@
     .btn {
       font-family: 'DM Sans', sans-serif;
       font-size: 13px;
-      color: #A0A3B8;
+      color: #FFFFFF;
       border-color: #2A2D3A;
       transition: color 0.15s ease, border-color 0.15s ease;
 
       &:hover {
-        color: #F0F0F8;
+        color: #FFFFFF;
         border-color: #E63946;
       }
     }
@@ -556,10 +572,10 @@
   // Text, number, textarea inputs in record forms
   .field-type:not(.template-minimal .field-type) {
 
-    input[type="text"],
-    input[type="email"],
-    input[type="number"],
-    input[type="url"],
+    input[type="text"]:not(.rs__input),
+    input[type="email"]:not(.rs__input),
+    input[type="number"]:not(.rs__input),
+    input[type="url"]:not(.rs__input),
     textarea {
       background: #151821;
       border: 1px solid #2A2D3A;
@@ -617,15 +633,30 @@
   // Fix globally — no scope needed, this applies to every rs instance.
 
   .rs__input-container {
+    // Collapse to content width — prevents invisible overlay across the grid
     width: auto !important;
-    max-width: 100% !important;
+    max-width: fit-content !important;
     overflow: hidden !important;
-    min-width: 0 !important;
+    min-width: 2px !important;
+    // Keep in column 2 so it doesn't cover the single-value/placeholder in column 1
+    grid-area: 1 / 2 / auto / auto !important;
   }
 
   .rs__input {
     width: auto !important;
     min-width: 0 !important;
+    max-width: 100% !important;
+    // Prevent the input from inheriting control's border/background and showing a visible box
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  // Ensure value-container padding is applied in document forms
+  .document-fields .rs__value-container,
+  .field-type.select .rs__value-container,
+  .field-type.relationship .rs__value-container {
+    padding: 2px 1rem !important;
   }
 
   // ── Toast / Notifications ─────────────────────────────────────────────────
@@ -1936,10 +1967,10 @@
 
   // ── Text / number / textarea inputs (edit forms) ─────────────────────
 
-  .render-fields input[type="text"],
-  .render-fields input[type="email"],
-  .render-fields input[type="number"],
-  .render-fields input[type="url"],
+  .render-fields input[type="text"]:not(.rs__input),
+  .render-fields input[type="email"]:not(.rs__input),
+  .render-fields input[type="number"]:not(.rs__input),
+  .render-fields input[type="url"]:not(.rs__input),
   .render-fields textarea {
     background: #0F1117;
     border: 1px solid #1E2130;
@@ -2057,16 +2088,16 @@
   // Broaden from .render-fields to .document-fields and .field-type
   // to catch inputs that Payload renders at different nesting depths.
 
-  .document-fields input[type="text"],
-  .document-fields input[type="email"],
-  .document-fields input[type="number"],
-  .document-fields input[type="url"],
-  .document-fields input[type="search"],
+  .document-fields input[type="text"]:not(.rs__input),
+  .document-fields input[type="email"]:not(.rs__input),
+  .document-fields input[type="number"]:not(.rs__input),
+  .document-fields input[type="url"]:not(.rs__input),
+  .document-fields input[type="search"]:not(.rs__input),
   .document-fields textarea,
-  .field-type.text input,
-  .field-type.email input,
-  .field-type.number input,
-  .field-type.url input,
+  .field-type.text input:not(.rs__input),
+  .field-type.email input:not(.rs__input),
+  .field-type.number input:not(.rs__input),
+  .field-type.url input:not(.rs__input),
   .field-type.textarea textarea {
     background: #0F1117 !important;
     border: 1px solid #1E2130 !important;
@@ -2103,8 +2134,8 @@
 
   // ── Slug / code-style fields (field-type.text with slug class) ────────
 
-  .field-type.text.field--slug input,
-  .field-type[class*="slug"] input {
+  .field-type.text.field--slug input:not(.rs__input),
+  .field-type[class*="slug"] input:not(.rs__input) {
     font-family: 'DM Mono', 'Fira Code', monospace !important;
     font-size: 13px !important;
     color: #6366f1 !important;
@@ -2135,6 +2166,12 @@
       padding: 10px 16px;
       background: #0A0C12;
       border-bottom: 1px solid #1E2130;
+    }
+
+    // "Add Row" button — give it breathing room inside the container
+    // so it doesn't bleed past the border-radius clip.
+    &__add-row {
+      margin: 8px 16px;
     }
 
     &__title {
@@ -2429,7 +2466,10 @@
     border-bottom: 1px solid #1E2130;
     margin-bottom: 1.5rem;
 
-    button, a {
+    // Only target direct tab buttons — exclude buttons inside nested Payload
+    // components (react-select indicators, array/block field chrome, etc.)
+    > button, > a,
+    > * > button, > * > a {
       font-family: 'DM Sans', sans-serif;
       font-size: 13px;
       font-weight: 500;

@@ -2,13 +2,25 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Button from "@/components/ui/Button";
 import { shippingAddressSchema, type ShippingAddress } from "@/lib/shipping/validation";
 import { US_STATES, SUPPORTED_COUNTRIES } from "@/lib/shipping/constants";
 
+const shippingFormSchema = shippingAddressSchema.extend({
+  email: z.string().email("Please enter a valid email address").trim(),
+});
+
+type ShippingFormData = z.infer<typeof shippingFormSchema>;
+
+export interface ShippingFormResult {
+  email: string;
+  address: ShippingAddress;
+}
+
 interface ShippingFormProps {
-  defaultValues?: Partial<ShippingAddress>;
-  onSubmit: (address: ShippingAddress) => void;
+  defaultValues?: Partial<ShippingFormData>;
+  onSubmit: (result: ShippingFormResult) => void;
 }
 
 export default function ShippingForm({
@@ -20,8 +32,8 @@ export default function ShippingForm({
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<ShippingAddress>({
-    resolver: zodResolver(shippingAddressSchema),
+  } = useForm<ShippingFormData>({
+    resolver: zodResolver(shippingFormSchema),
     defaultValues: {
       country: "US",
       ...defaultValues,
@@ -38,9 +50,33 @@ export default function ShippingForm({
       hasError ? "border-red-500/60" : "border-poke-border",
     ].join(" ");
 
+  function handleFormSubmit(data: ShippingFormData) {
+    const { email, ...address } = data;
+    onSubmit({ email, address });
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
       <div className="space-y-4">
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-poke-muted mb-1.5">
+            Email <span className="text-red-400">*</span>
+          </label>
+          <input
+            {...register("email")}
+            type="email"
+            autoComplete="email"
+            placeholder="jane@example.com"
+            className={fieldClass(!!errors.email)}
+          />
+          {errors.email && (
+            <p className="mt-1.5 text-xs text-red-400">
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
         {/* Full Name */}
         <div>
           <label className="block text-sm font-medium text-poke-muted mb-1.5">

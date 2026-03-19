@@ -8,14 +8,22 @@ import {
 } from "@stripe/react-stripe-js";
 import { formatPrice } from "@/lib/format-price";
 import Button from "@/components/ui/Button";
+import type { CartItem } from "@/lib/cart-store";
+import type { ShippingAddress } from "@/lib/shipping/validation";
 
 interface StripePaymentFormProps {
   totalPrice: number;
+  items: CartItem[];
+  customerEmail?: string;
+  shippingAddress?: ShippingAddress;
   onSuccess: () => void;
 }
 
 export default function StripePaymentForm({
   totalPrice,
+  items,
+  customerEmail,
+  shippingAddress,
   onSuccess,
 }: StripePaymentFormProps) {
   const stripe = useStripe();
@@ -42,11 +50,49 @@ export default function StripePaymentForm({
     if (result.error) {
       setError(result.error.message || "Payment failed");
       setLoading(false);
-    } else if (
+      return;
+    }
+
+    if (
       result.paymentIntent?.status === "succeeded" ||
       result.paymentIntent?.status === "processing"
     ) {
-      onSuccess();
+      // Create the order on the server now that payment succeeded
+      try {
+        const res = await fetch("/api/checkout/stripe/confirm-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentIntentId: result.paymentIntent.id,
+            items: items.map((i) => ({
+              productId: i.productId,
+              name: i.name,
+              price: i.price,
+              quantity: i.quantity,
+            })),
+            totalCents: totalPrice,
+            customerEmail,
+            shippingAddress,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          setError(
+            data.error ||
+              `Payment processed but order creation failed. Reference: ${result.paymentIntent.id}`
+          );
+          setLoading(false);
+          return;
+        }
+
+        onSuccess();
+      } catch {
+        setError(
+          `Payment was processed but we couldn't confirm your order. Reference: ${result.paymentIntent.id}. Please contact support.`
+        );
+        setLoading(false);
+      }
     }
   }
 

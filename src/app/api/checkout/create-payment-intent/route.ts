@@ -69,10 +69,22 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+
+    // Surface stock/validation errors to the client instead of generic message
+    if (
+      message.includes("out of stock") ||
+      message.includes("Cart is empty") ||
+      message.includes("Too many items") ||
+      message.includes("Product not found")
+    ) {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
     console.error("[create-payment-intent] Unhandled error:", err);
     return NextResponse.json(
       { error: "Payment processing failed" },
-      { status: 400 }
+      { status: 500 }
     );
   }
 }

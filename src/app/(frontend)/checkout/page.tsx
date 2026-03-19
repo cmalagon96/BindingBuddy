@@ -14,6 +14,10 @@ import PaymentMethodSelector, {
 import StripePaymentForm from "@/components/checkout/StripePaymentForm";
 import PayPalPaymentForm from "@/components/checkout/PayPalPaymentForm";
 import StoreReferralPicker from "@/components/checkout/StoreReferralPicker";
+import ShippingForm, {
+  type ShippingFormResult,
+} from "@/components/checkout/shipping/ShippingForm";
+import type { ShippingAddress } from "@/lib/shipping/validation";
 
 // Module-level constant — Stripe client is created once and reused across
 // renders (P16: memoized stripe client).
@@ -45,6 +49,8 @@ function CheckoutContent() {
   const [intentError, setIntentError] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
   const [manualStoreRef, setManualStoreRef] = useState<string | null>(null);
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
 
   // HIGH-7: guard flag prevents a second intent from being created when
   // manualStoreRef changes after the first intent is already in flight.
@@ -110,6 +116,7 @@ function CheckoutContent() {
     createIntent();
     return () => {
       cancelled = true;
+      intentCreating.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, success, canceled]);
@@ -118,6 +125,11 @@ function CheckoutContent() {
     clearCart();
     setPaid(true);
   }, [clearCart]);
+
+  const handleShippingSubmit = useCallback((result: ShippingFormResult) => {
+    setCustomerEmail(result.email);
+    setShippingAddress(result.address);
+  }, []);
 
   // Thank-you screen (redirect-based or inline success)
   if (success || paid) {
@@ -198,64 +210,107 @@ function CheckoutContent() {
 
         <StoreReferralPicker onStoreSelected={setManualStoreRef} />
 
-        <PaymentMethodSelector
-          selected={paymentMethod}
-          onChange={setPaymentMethod}
-        />
-
-        {intentError && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
-            {intentError}
-          </div>
-        )}
-
-        {paymentMethod === "card" && (
-          <div className="bg-poke-card border border-poke-border rounded-2xl p-6">
-            {clientSecret ? (
-              <Elements
-                stripe={stripePromise}
-                options={{
-                  clientSecret,
-                  appearance: {
-                    theme: "night",
-                    variables: {
-                      colorPrimary: "#3B6B9E",
-                      colorBackground: "#1A1D27",
-                      colorText: "#F0F0F8",
-                      fontFamily: "DM Sans, sans-serif",
-                      borderRadius: "12px",
-                    },
-                    rules: {
-                      ".Input": { border: "1px solid #2A2D3A" },
-                      ".Input:focus": {
-                        border: "1px solid rgba(59,107,158,0.5)",
-                      },
-                    },
-                  },
+        {/* Step 1: Shipping & Contact */}
+        <div className="bg-poke-card border border-poke-border rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-semibold text-poke-text">
+              Shipping & Contact
+            </h2>
+            {shippingAddress && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShippingAddress(null);
+                  setCustomerEmail(null);
                 }}
+                className="text-xs text-poke-blue hover:text-poke-blue/80 transition-colors"
               >
-                <StripePaymentForm
-                  totalPrice={totalPrice}
-                  onSuccess={handlePaymentSuccess}
-                />
-              </Elements>
-            ) : (
-              <div className="flex items-center justify-center py-8">
-                <div className="h-8 w-8 border-2 border-poke-blue border-t-transparent rounded-full animate-spin" />
-                <span className="ml-3 text-poke-muted text-sm">
-                  Loading payment form...
-                </span>
-              </div>
+                Edit
+              </button>
             )}
           </div>
-        )}
 
-        {paymentMethod === "paypal" && (
-          <PayPalPaymentForm
-            items={items}
-            onSuccess={handlePaymentSuccess}
-            storeRef={manualStoreRef}
-          />
+          {shippingAddress && customerEmail ? (
+            <div className="text-sm text-poke-muted space-y-1">
+              <p className="text-poke-text font-medium">{shippingAddress.fullName}</p>
+              <p>{customerEmail}</p>
+              <p>{shippingAddress.line1}{shippingAddress.line2 ? `, ${shippingAddress.line2}` : ""}</p>
+              <p>{shippingAddress.city}, {shippingAddress.state} {shippingAddress.postalCode}</p>
+              <p>{shippingAddress.country}</p>
+            </div>
+          ) : (
+            <ShippingForm onSubmit={handleShippingSubmit} />
+          )}
+        </div>
+
+        {/* Step 2: Payment — only shown after shipping is complete */}
+        {shippingAddress && customerEmail && (
+          <>
+            <PaymentMethodSelector
+              selected={paymentMethod}
+              onChange={setPaymentMethod}
+            />
+
+            {intentError && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+                {intentError}
+              </div>
+            )}
+
+            {paymentMethod === "card" && (
+              <div className="bg-poke-card border border-poke-border rounded-2xl p-6">
+                {clientSecret ? (
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      clientSecret,
+                      appearance: {
+                        theme: "night",
+                        variables: {
+                          colorPrimary: "#3B6B9E",
+                          colorBackground: "#1A1D27",
+                          colorText: "#F0F0F8",
+                          fontFamily: "DM Sans, sans-serif",
+                          borderRadius: "12px",
+                        },
+                        rules: {
+                          ".Input": { border: "1px solid #2A2D3A" },
+                          ".Input:focus": {
+                            border: "1px solid rgba(59,107,158,0.5)",
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    <StripePaymentForm
+                      totalPrice={totalPrice}
+                      items={items}
+                      customerEmail={customerEmail}
+                      shippingAddress={shippingAddress}
+                      onSuccess={handlePaymentSuccess}
+                    />
+                  </Elements>
+                ) : (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="h-8 w-8 border-2 border-poke-blue border-t-transparent rounded-full animate-spin" />
+                    <span className="ml-3 text-poke-muted text-sm">
+                      Loading payment form...
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {paymentMethod === "paypal" && (
+              <PayPalPaymentForm
+                items={items}
+                customerEmail={customerEmail}
+                shippingAddress={shippingAddress}
+                onSuccess={handlePaymentSuccess}
+                storeRef={manualStoreRef}
+              />
+            )}
+          </>
         )}
 
         <Link

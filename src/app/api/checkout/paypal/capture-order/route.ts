@@ -87,14 +87,18 @@ function decodePendingOrderCookie(
 
   try {
     const decoded = JSON.parse(Buffer.from(b64, "base64").toString("utf-8"));
-    // Basic shape validation
+    // Basic shape validation — customerEmail may be absent when ShippingForm
+    // is not rendered in the checkout flow (architecture gap).
     if (
       !decoded ||
       !Array.isArray(decoded.items) ||
-      typeof decoded.customerEmail !== "string" ||
       typeof decoded.totalCents !== "number"
     ) {
       return null;
+    }
+    // Normalise missing customerEmail so downstream code always sees a string.
+    if (typeof decoded.customerEmail !== "string") {
+      decoded.customerEmail = "";
     }
     return decoded;
   } catch {
@@ -195,6 +199,11 @@ export async function POST(req: NextRequest) {
     const captureId =
       data.purchase_units?.[0]?.payments?.captures?.[0]?.id || null;
 
+    // Extract buyer email from PayPal response as fallback when checkout
+    // doesn't collect it (ShippingForm not rendered — architecture gap).
+    const paypalBuyerEmail: string =
+      data.payer?.email_address || pendingOrder.customerEmail || "";
+
     // P2: Create the order record in the database
     // Validate shipping address before creating order
     const shippingResult = validateShippingAddress(pendingOrder.shippingAddress);
@@ -211,7 +220,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const order = await createOrder({
-        customerEmail: pendingOrder.customerEmail,
+        customerEmail: paypalBuyerEmail,
         items: pendingOrder.items.map((i) => ({
           productId: i.productId,
           name: i.name,
@@ -255,7 +264,7 @@ export async function POST(req: NextRequest) {
         {
           paypalOrderId: orderId,
           captureId,
-          customerEmail: pendingOrder.customerEmail,
+          customerEmail: paypalBuyerEmail,
           totalCents: pendingOrder.totalCents,
           error: orderErr,
         }
