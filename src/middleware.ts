@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Payment routes get strict nonce-based CSP; other public routes get relaxed CSP.
-const PAYMENT_ROUTES = ["/checkout", "/cart", "/contact"];
-
-function isPaymentRoute(pathname: string): boolean {
-  return PAYMENT_ROUTES.some((route) => pathname.startsWith(route));
-}
-
+// Unified CSP for all public routes — payment security is enforced server-side.
+// Stripe/PayPal SDKs loaded only from allowlisted domains.
 const SHARED_DIRECTIVES = [
   "default-src 'self'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -109,25 +104,9 @@ export async function middleware(request: NextRequest) {
 
   const isDev = process.env.NODE_ENV !== "production";
 
-  if (isPaymentRoute(pathname)) {
-    // Nonce-based CSP for payment routes.
-    // NOTE: 'strict-dynamic' is intentionally NOT used here because it causes
-    // browsers to ignore 'self', which blocks webpack chunk loading for
-    // next/dynamic imports (ChunkLoadError). Instead we use 'self' + nonce
-    // so that same-origin chunks load normally while inline scripts still
-    // require the nonce.
-    const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64");
-    requestHeaders.set("x-nonce", nonce);
-
-    const devEval = isDev ? " 'unsafe-eval'" : "";
-    const scriptSrc = `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com${devEval}`;
-    cspHeader = [...SHARED_DIRECTIVES, scriptSrc].join("; ");
-  } else {
-    // Relaxed CSP for other public routes
-    const devEval = isDev ? " 'unsafe-eval'" : "";
-    const scriptSrc = `script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com${devEval}`;
-    cspHeader = [...SHARED_DIRECTIVES, scriptSrc].join("; ");
-  }
+  const devEval = isDev ? " 'unsafe-eval'" : "";
+  const scriptSrc = `script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com${devEval}`;
+  cspHeader = [...SHARED_DIRECTIVES, scriptSrc].join("; ");
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
