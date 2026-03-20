@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ProductCard from "@/components/ui/ProductCard";
 import type { Product } from "@/types/product";
 
@@ -31,6 +31,12 @@ interface Props {
 export default function ProductsClient({ products }: Props) {
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<SortOption>("default");
+  const [visibleCount, setVisibleCount] = useState(24);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [category, sort]);
 
   const filtered = useMemo(() => {
     let list: Product[] =
@@ -98,11 +104,23 @@ export default function ProductsClient({ products }: Props) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.slice(0, visibleCount).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          {visibleCount < filtered.length && (
+            <div className="text-center mt-10">
+              <button
+                onClick={() => setVisibleCount((c) => c + 24)}
+                className="px-8 py-3 bg-poke-card border border-poke-border text-poke-text font-display font-bold rounded-xl hover:border-poke-blue/50 transition-colors"
+              >
+                Load More ({filtered.length - visibleCount} remaining)
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

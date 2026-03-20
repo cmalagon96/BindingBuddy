@@ -26,15 +26,16 @@ function ProductCard({ product, priority = false }: Props) {
         href={`/products/${product.slug}`}
         className="block overflow-hidden"
       >
-        <div className="relative h-56 bg-gradient-to-br from-white/5 to-white/[0.02] flex items-center justify-center">
+        <div className={`relative h-56 bg-gradient-to-br from-white/5 to-white/[0.02] flex items-center justify-center${!product.blurDataURL ? " shimmer" : ""}`}>
           <Image
             src={product.image}
             alt={product.name}
             width={400}
             height={300}
             className="object-cover w-full h-full"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
             priority={priority}
+            {...(product.blurDataURL ? { placeholder: "blur" as const, blurDataURL: product.blurDataURL } : {})}
           />
           {product.badge && (
             <div className="absolute top-3 left-3">

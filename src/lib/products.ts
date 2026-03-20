@@ -34,6 +34,12 @@ function resolveImageUrl(img: unknown): string {
   );
 }
 
+function resolveBlurDataURL(img: unknown): string | undefined {
+  if (!img || typeof img === "string") return undefined;
+  const media = img as Record<string, unknown>;
+  return (media.blurDataURL as string) || undefined;
+}
+
 function normalizeProduct(doc: Record<string, unknown>): Product {
   const images = doc.images as Array<{ image: unknown }> | undefined;
   return {
@@ -43,6 +49,7 @@ function normalizeProduct(doc: Record<string, unknown>): Product {
     description: (doc.description as string) || "",
     price: doc.price as number,
     image: resolveImageUrl(doc.image),
+    blurDataURL: resolveBlurDataURL(doc.image),
     images: images?.map((i) => resolveImageUrl(i.image)) || [],
     category: doc.category as Product["category"],
     featured: (doc.featured as boolean) || false,
@@ -51,6 +58,31 @@ function normalizeProduct(doc: Record<string, unknown>): Product {
     binderType: (doc.binderType as string) || undefined,
     variants: (doc.variants as Product["variants"]) || undefined,
     badge: (doc.badge as Product["badge"]) || undefined,
+  };
+}
+
+export async function getHomePageProducts(): Promise<{ featured: Product[]; newArrivals: Product[] }> {
+  const payload = await getPayloadClient();
+  const [featuredResult, newArrivalsResult] = await Promise.all([
+    payload.find({
+      collection: "products",
+      where: { featured: { equals: true } },
+      limit: 8,
+      depth: 1,
+      select: PRODUCT_SELECT,
+    }),
+    payload.find({
+      collection: "products",
+      where: { featured: { not_equals: true } },
+      limit: 8,
+      sort: "-createdAt",
+      depth: 1,
+      select: PRODUCT_SELECT,
+    }),
+  ]);
+  return {
+    featured: featuredResult.docs.map((doc) => normalizeProduct(doc as unknown as Record<string, unknown>)),
+    newArrivals: newArrivalsResult.docs.map((doc) => normalizeProduct(doc as unknown as Record<string, unknown>)),
   };
 }
 

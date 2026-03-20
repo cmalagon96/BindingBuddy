@@ -11,6 +11,7 @@ export interface Product {
   description: string;
   price: number;
   image: string;
+  blurDataURL?: string;
   images?: string[];
   category: "engraved-binder" | "engraving-only" | "villain-logo-binder" | "design-collection";
   featured: boolean;
